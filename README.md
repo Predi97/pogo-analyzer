@@ -1,41 +1,43 @@
 # ⚡ PokéGO Analyzer
 
-Lokalna aplikacja webowa do analizy konta Pokemon GO na podstawie eksportu `PGSStats.json` z [PGSharp](https://www.pgsharp.com/).
+> 🇵🇱 [Wersja polska](README.pl.md)
+
+A local web app for analyzing your Pokémon GO account using the `PGSStats.json` export from [PGSharp](https://www.pgsharp.com/).
 
 ---
 
-## Funkcje
+## Features
 
-| Zakładka | Co robi |
+| Tab | Description |
 |---|---|
-| 🎮 **Pokemony** | Tabela całego boxa z filtrowaniem, sortowaniem, search barem i generatorem regex do masowego transferu |
-| ⚔️ **Raidy** | Ranking najlepszych attackerów (DPS×TDO proxy + tier bonus) |
-| 🏆 **PvP** | Kandydaci do GL / UL / ML — tylko pokemon mieszczące się w limicie CP danej ligi |
-| 🎒 **Ekwipunek** | Lista itemów z ilościami + analiza AI co i na kogo użyć |
-| 📅 **Eventy** | Nadchodzące i aktywne eventy z ScrapedDuck + strategia AI na każdy event |
-| 🥇 **Tier Lista** | Scraper pokebase.app (fallback snapshot dla ~65 meta pokemonów) |
-| 🔧 **Rozwój** | Kandydaci do ewolucji, power-up, oczyszczenia (purify shadow) i Elite TM |
-| ⚙️ **Ustawienia** | Zmiana providera AI, klucze API, statystyki cache |
+| 🎮 **Pokémon** | Full box table with filtering, sorting, search and a transfer regex generator |
+| ⚔️ **Raids** | Best attacker ranking (DPS×TDO proxy + tier bonus) |
+| 🏆 **PvP** | Candidates for GL / UL / ML — only Pokémon that fit within the league CP limit |
+| 🎒 **Items** | Item list with counts + AI analysis of what to use on whom |
+| 📅 **Events** | Upcoming & active events from ScrapedDuck + AI strategy for each event |
+| 🥇 **Tier List** | pokebase.app scraper with a built-in fallback snapshot (~65 meta Pokémon) |
+| 🔧 **Development** | Candidates for evolution, power-up, shadow purification and Elite TM |
+| ⚙️ **Settings** | Switch AI provider, manage API keys, view cache stats |
 
-### Generator regex do transferu
-Pasek opcji nad tabelą Pokemonów generuje zapytanie zgodne z wyszukiwarką Pokemon GO:
-- separator `,` (OR w PoGO)
-- opcjonalnie: `&!shiny&!shadow&!lucky&!favorite`, `&!3*&!4*`, `&!legendary`, `&cp-XXX`
-- automatyczne wykluczanie gatunków, które mają cennego osobnika w boxie
+### Transfer Regex Generator
+A filter bar above the Pokémon table generates a search query compatible with the in-game search:
+- `,` separator (OR in Pokémon GO)
+- Optional flags: `&!shiny&!shadow&!lucky&!favorite`, `&!3*&!4*`, `&!legendary`, `&cp-XXX`
+- Automatically skips species that have a valuable individual in the box
 
-### AI cache
-Odpowiedzi AI zapisywane w SQLite wg hasha IV/CP/shadow/shiny — ta sama kombinacja nie kosztuje drugiego tokenu.
+### AI Cache
+AI responses are stored in SQLite by a hash of IV/CP/shadow/shiny — the same combination never costs a second API call.
 
 ---
 
-## Wymagania
+## Requirements
 
 - Python 3.9+
-- Konto Google AI Studio (darmowy klucz Gemini) — lub OpenAI / Anthropic / Azure OpenAI
+- A Google AI Studio account (free Gemini key) — or OpenAI / Anthropic / Azure OpenAI
 
 ---
 
-## Instalacja
+## Installation
 
 ```bash
 git clone https://github.com/Predi97/pogo-analyzer.git
@@ -46,58 +48,60 @@ source venv/bin/activate        # Windows: venv\Scripts\activate
 
 pip install -r requirements.txt
 
-cp .env.example .env            # uzupełnij klucze API
+cp .env.example .env            # fill in your API keys
 ```
 
-### Plik `.env`
+### `.env` keys
 
-```env
-GEMINI_API_KEY=AIza...
-AI_PROVIDER=gemini
-SECRET_KEY=losowy-tajny-klucz
-```
+| Key | Description |
+|---|---|
+| `AI_PROVIDER` | `gemini` \| `openai` \| `anthropic` \| `azure` |
+| `GEMINI_API_KEY` | [aistudio.google.com](https://aistudio.google.com/apikey) — free tier |
+| `OPENAI_API_KEY` | Optional |
+| `ANTHROPIC_API_KEY` | Optional |
+| `SECRET_KEY` | Random string for Flask sessions |
 
 ---
 
-## Uruchomienie
+## Usage
 
 ```bash
 source venv/bin/activate
 python app.py
 ```
 
-Otwórz http://127.0.0.1:5000 w przeglądarce, wgraj `PGSStats.json` i gotowe.
+Open http://127.0.0.1:5000, upload your `PGSStats.json` and you're good to go.
 
 ---
 
-## Stack
+## Tech Stack
 
 - **Backend** — Flask + SQLite (WAL mode)
-- **Frontend** — Vanilla JS, bez frameworków
-- **AI** — Google Gemini (domyślnie), OpenAI, Anthropic, Azure OpenAI
-- **Dane eventów** — [ScrapedDuck](https://github.com/bigfoott/ScrapedDuck)
-- **Tier lista** — pokebase.app scraper + wbudowany snapshot
+- **Frontend** — Vanilla JS, no frameworks
+- **AI** — Google Gemini (default), OpenAI, Anthropic, Azure OpenAI
+- **Event data** — [ScrapedDuck](https://github.com/bigfoott/ScrapedDuck)
+- **Tier list** — pokebase.app scraper + built-in snapshot
 
 ---
 
-## Struktura plików
+## File Structure
 
 ```
 pogo-analyzer/
-├── app.py              # cały backend Flask (~1600 linii)
+├── app.py              # full Flask backend
 ├── templates/
-│   └── index.html      # cały frontend (HTML + CSS + JS)
+│   └── index.html      # full frontend (HTML + CSS + JS)
 ├── requirements.txt
 ├── .env.example
 └── .gitignore
 ```
 
-`baza_pogo.db` tworzy się automatycznie przy pierwszym uruchomieniu.
+`baza_pogo.db` is created automatically on first run.
 
 ---
 
-## Uwagi
+## Notes
 
-- Aplikacja działa **wyłącznie lokalnie** — dane nie są wysyłane nigdzie poza wywołaniami AI
-- Darmowy tier Gemini: 15 req/min — przy szybkim klikaniu możliwy rate limit (app automatycznie próbuje kolejnych modeli)
-- Scraper tier listy pokebase.app może zwracać 0 wyników (strona renderuje JS) — działa fallback snapshot
+- The app runs **entirely locally** — your data never leaves your machine except for AI API calls
+- Gemini free tier: 15 req/min — on rate limit the app automatically tries the next available model
+- The pokebase.app tier list scraper may return 0 results (JS-rendered site) — the built-in snapshot is used as fallback

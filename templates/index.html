@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PokéGO Analyzer</title>
+<style>
+:root {
+  --bg:      #060c18;
+  --bg2:     #0b1525;
+  --bg3:     #0f1d33;
+  --border:  rgba(56,139,253,.14);
+  --border2: rgba(56,139,253,.08);
+  --text:    #aac8f0;
+  --muted:   #3d5a80;
+  --accent:  #388bfd;
+  --green:   #22c55e;
+  --yellow:  #fbbf24;
+  --red:     #f87171;
+  --purple:  #a78bfa;
+  --cyan:    #22d3ee;
+  --orange:  #fb923c;
+  --radius:  10px;
+  --shadow:  0 4px 24px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.5;min-height:100vh}
+a{color:var(--accent)}
+code{font-family:monospace;background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:1px 5px;font-size:12px}
+
+/* Layout */
+#app{max-width:1200px;margin:0 auto;padding:16px 14px}
+
+/* Header */
+header{display:flex;align-items:center;gap:16px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+header h1{font-size:20px;font-weight:800;color:#79c0ff}
+header p{font-size:12px;color:var(--muted)}
+#stats-bar{display:flex;gap:10px;flex-wrap:wrap;margin-left:auto}
+.stat-chip{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap}
+.stat-chip b{color:var(--text)}
+
+/* Upload */
+#upload-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:48px 32px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;position:relative}
+#upload-zone:hover,#upload-zone.drag{border-color:var(--accent);background:rgba(56,139,253,.04)}
+#upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+#upload-zone .icon{font-size:40px;margin-bottom:10px}
+#upload-zone p{color:var(--muted);font-size:13px;margin-top:6px}
+#upload-zone .btn-upload{display:inline-block;background:linear-gradient(135deg,#1f6feb,var(--accent));border-radius:8px;padding:10px 24px;color:#fff;font-weight:700;font-size:13px;margin-bottom:8px}
+#upload-small{display:none;position:relative;cursor:pointer}
+#upload-small input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+#upload-small .btn{background:transparent;border:1px solid var(--border);border-radius:8px;padding:5px 12px;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer}
+
+/* Tabs */
+#tabs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:16px}
+.tab{padding:7px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;transition:all .15s}
+.tab:hover{border-color:rgba(56,139,253,.35);color:var(--text)}
+.tab.active{border-color:var(--accent);background:rgba(56,139,253,.12);color:var(--accent)}
+.tab-badge{font-size:10px;opacity:.6;margin-left:4px}
+
+/* Panels */
+.panel{display:none}
+.panel.active{display:block}
+
+/* Toolbar */
+.toolbar{display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap}
+.toolbar input,.toolbar select{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:7px 11px;color:var(--text);font-family:inherit;font-size:12px;outline:none;transition:border-color .2s}
+.toolbar input{flex:1;min-width:140px}
+.toolbar input:focus,.toolbar select:focus{border-color:var(--accent)}
+.count-label{font-size:11px;color:var(--muted);margin-left:auto}
+
+/* Table */
+.tbl-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{padding:9px 10px;text-align:left;font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);font-weight:700;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:8px 10px;border-bottom:1px solid var(--border2);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(56,139,253,.03)}
+.name-cell{font-weight:600;color:#aac8f0;white-space:nowrap}
+.cp-cell{font-weight:700;color:var(--yellow)}
+.iv-s{color:var(--green);font-weight:700}
+.iv-a{color:var(--accent);font-weight:700}
+.iv-n{color:var(--text)}
+.iv-l{color:var(--muted)}
+.mono{font-family:monospace;font-size:11px;color:var(--muted)}
+.year-old{color:var(--yellow)}
+.year-mid{color:var(--cyan)}
+
+/* Badges */
+.badge{display:inline-block;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin:0 1px;white-space:nowrap}
+.badge-s{background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3)}
+.badge-a{background:rgba(249,115,22,.15);color:#f97316;border:1px solid rgba(249,115,22,.3)}
+.badge-b{background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.3)}
+.badge-shiny{background:rgba(251,191,36,.12);color:var(--yellow);border:1px solid rgba(251,191,36,.3)}
+.badge-shadow{background:rgba(167,139,250,.12);color:var(--purple);border:1px solid rgba(167,139,250,.3)}
+.badge-hundo{background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.3)}
+.badge-lucky{background:rgba(34,211,238,.12);color:var(--cyan);border:1px solid rgba(34,211,238,.3)}
+.badge-pvp{background:rgba(56,139,253,.12);color:var(--accent);border:1px solid rgba(56,139,253,.3)}
+
+/* AI button */
+.btn-ai{background:linear-gradient(135deg,rgba(56,139,253,.15),rgba(56,139,253,.08));border:1px solid rgba(56,139,253,.3);border-radius:6px;padding:3px 10px;color:var(--accent);cursor:pointer;font-size:11px;font-weight:700;font-family:inherit;white-space:nowrap;transition:all .2s}
+.btn-ai:hover{background:rgba(56,139,253,.25);border-color:var(--accent)}
+.btn-ai:disabled{opacity:.4;cursor:default}
+.btn-ai.loading{opacity:.6}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;border-radius:8px;padding:8px 16px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;border:1px solid transparent}
+.btn-primary{background:linear-gradient(135deg,#1f6feb,var(--accent));color:#fff}
+.btn-primary:hover{opacity:.9}
+.btn-outline{background:transparent;border-color:var(--border);color:var(--muted)}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-danger{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:var(--red)}
+.btn-sm{padding:5px 11px;font-size:11px}
+
+/* Cards */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:14px}
+.card-title{font-size:15px;font-weight:700;color:#79c0ff;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+
+/* Items grid */
+.items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px}
+.item-card{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center}
+.item-name{font-size:12px;color:var(--text)}
+.item-count{background:rgba(167,139,250,.12);color:var(--purple);border:1px solid rgba(167,139,250,.3);border-radius:8px;padding:2px 9px;font-weight:700;font-size:12px}
+
+/* Events */
+.events-grid{display:grid;gap:10px}
+.event-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px}
+.event-card.active{border-color:rgba(34,197,94,.3);background:rgba(34,197,94,.03)}
+.event-card.upcoming{border-color:rgba(56,139,253,.25)}
+.event-card.ended{opacity:.5}
+.event-header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px}
+.event-name{font-weight:700;color:#aac8f0;font-size:14px}
+.event-meta{font-size:11px;color:var(--muted);margin-top:3px}
+.event-status{font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap}
+.status-active{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.3)}
+.status-upcoming{background:rgba(56,139,253,.15);color:var(--accent);border:1px solid rgba(56,139,253,.3)}
+.status-ended{background:rgba(100,116,139,.15);color:#64748b;border:1px solid rgba(100,116,139,.3)}
+.event-bonuses{margin:8px 0;font-size:12px;color:var(--muted)}
+.event-actions{display:flex;gap:8px;margin-top:10px}
+
+/* Tier list */
+.tier-grid{display:grid;gap:10px}
+.tier-row{display:flex;gap:10px;align-items:flex-start}
+.tier-label{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;flex-shrink:0}
+.tier-s{background:rgba(239,68,68,.2);color:#ef4444}
+.tier-a{background:rgba(249,115,22,.2);color:#f97316}
+.tier-b{background:rgba(251,191,36,.2);color:var(--yellow)}
+.tier-c{background:rgba(34,197,94,.2);color:var(--green)}
+.tier-d{background:rgba(100,116,139,.2);color:#94a3b8}
+.tier-pokes{display:flex;flex-wrap:wrap;gap:5px}
+.tier-chip{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:11px;color:var(--text)}
+
+/* AI Response modal */
+#ai-modal{display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.65);backdrop-filter:blur(4px)}
+#ai-modal.open{display:flex;align-items:flex-start;justify-content:center;padding:40px 16px}
+#ai-box{background:var(--bg2);border:1px solid var(--border);border-radius:14px;width:100%;max-width:680px;max-height:80vh;overflow:auto;box-shadow:var(--shadow)}
+#ai-box-header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg2);z-index:1}
+#ai-box-title{font-weight:700;color:#79c0ff;font-size:15px}
+#ai-box-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;line-height:1;padding:0 4px}
+#ai-box-close:hover{color:var(--text)}
+#ai-box-body{padding:20px}
+#ai-box-cached{font-size:10px;color:var(--muted);margin-left:8px;vertical-align:middle}
+
+/* AI response rendering */
+.ai-resp h2,.ai-resp h3{color:#79c0ff;margin:14px 0 6px}
+.ai-resp h2{font-size:14px}
+.ai-resp h3{font-size:13px}
+.ai-resp p{color:var(--text);margin-bottom:8px;line-height:1.65}
+.ai-resp strong{color:#aac8f0}
+.ai-resp ul,.ai-resp ol{padding-left:18px;margin-bottom:8px}
+.ai-resp li{color:var(--text);margin-bottom:3px;line-height:1.6}
+.ai-resp hr{border:none;border-top:1px solid var(--border);margin:12px 0}
+.ai-resp code{font-size:11px}
+
+.tab-sub{padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;transition:all .15s;margin-right:4px}
+.tab-sub:hover{border-color:rgba(56,139,253,.35);color:var(--text)}
+.tab-sub.active{border-color:var(--accent);background:rgba(56,139,253,.12);color:var(--accent)}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Alerts */
+.alert{border-radius:8px;padding:10px 14px;font-size:12px;margin-bottom:12px}
+.alert-info{background:rgba(56,139,253,.08);border:1px solid rgba(56,139,253,.25);color:var(--accent)}
+.alert-warn{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);color:var(--yellow)}
+.alert-err{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);color:var(--red)}
+
+/* Settings */
+.settings-section{margin-bottom:22px}
+.settings-section h3{font-size:13px;font-weight:700;color:#79c0ff;margin-bottom:10px}
+.form-row{display:grid;grid-template-columns:180px 1fr;align-items:center;gap:10px;margin-bottom:8px}
+.form-row label{font-size:12px;color:var(--muted)}
+.form-row input,.form-row select{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 11px;color:var(--text);font-family:inherit;font-size:12px;outline:none;width:100%}
+.form-row input:focus{border-color:var(--accent)}
+.cache-bar{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:flex;gap:20px;flex-wrap:wrap;margin-top:8px}
+.cache-stat{font-size:12px;color:var(--muted)}
+.cache-stat b{color:var(--green)}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Header ─────────────────────────────────────────────── -->
+  <header>
+    <div>
+      <h1>⚡ PokéGO Analyzer</h1>
+      <p id="header-sub">Wgraj PGSStats.json żeby zacząć</p>
+    </div>
+    <div id="stats-bar" style="display:none">
+      <span class="stat-chip">Poke <b id="s-total">0</b></span>
+      <span class="stat-chip">✨ <b id="s-shiny">0</b></span>
+      <span class="stat-chip">💯 <b id="s-hundo">0</b></span>
+      <span class="stat-chip">👻 <b id="s-shadow">0</b></span>
+      <span class="stat-chip">🍀 <b id="s-lucky">0</b></span>
+    </div>
+    <div id="upload-small">
+      <div class="btn btn-outline btn-sm">↺ Zmień plik</div>
+      <input type="file" accept=".json" id="upload-input-small">
+    </div>
+  </header>
+
+  <!-- ── Upload zone (shown before data) ───────────────────── -->
+  <div id="upload-zone">
+    <input type="file" accept=".json" id="upload-input">
+    <div class="icon">📂</div>
+    <div class="btn-upload">Wybierz PGSStats.json</div>
+    <p>lub przeciągnij i upuść plik tutaj</p>
+    <p style="margin-top:8px;font-size:11px">Plik nie jest wysyłany na serwer — czytany lokalnie przez Flask</p>
+  </div>
+  <div id="upload-err" class="alert alert-err" style="display:none"></div>
+
+  <!-- ── Main UI (hidden until upload) ─────────────────────── -->
+  <div id="main-ui" style="display:none">
+
+    <!-- Tabs -->
+    <div id="tabs">
+      <button class="tab active" data-tab="pokemon">🎮 Pokemony <span class="tab-badge" id="tb-poke"></span></button>
+      <button class="tab" data-tab="raid">⚔️ Raidy</button>
+      <button class="tab" data-tab="pvp">🏆 PvP</button>
+      <button class="tab" data-tab="items">🎒 Ekwipunek</button>
+      <button class="tab" data-tab="events">📅 Eventy</button>
+      <button class="tab" data-tab="tiers">🥇 Tier Lista</button>
+      <button class="tab" data-tab="develop">🔧 Rozwój</button>
+      <button class="tab" data-tab="settings">⚙️ Ustawienia</button>
+    </div>
+
+    <!-- ── TAB: Pokemony ──────────────────────────────────── -->
+    <div class="panel active" id="panel-pokemon">
+      <div class="toolbar">
+        <input type="text" id="poke-search" placeholder="Szukaj nazwy…">
+        <select id="poke-filter">
+          <option value="all">Wszystkie</option>
+          <option value="hundo">💯 Hundo</option>
+          <option value="shiny">✨ Shiny</option>
+          <option value="shadow">👻 Shadow</option>
+          <option value="lucky">🍀 Lucky</option>
+          <option value="tier_s">Tier S (meta)</option>
+          <option value="tier_a">Tier A (meta)</option>
+          <option value="trash">🗑️ Kandydaci do transferu</option>
+          <option value="y2016">📅 2016–2018 (lucky)</option>
+          <option value="y2022">📅 2019–2022 (lucky)</option>
+        </select>
+        <select id="poke-sort">
+          <option value="cp">CP ↓</option>
+          <option value="iv">IV% ↓</option>
+          <option value="lvl">Level ↓</option>
+          <option value="name">Nazwa A→Z</option>
+        </select>
+        <span class="count-label" id="poke-count"></span>
+      </div>
+      <!-- Regex bar -->
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;padding:8px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;font-size:11px">
+        <span style="color:var(--muted);font-weight:700;white-space:nowrap">🔍 Regex PoGO:</span>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;color:var(--text)">
+          <input type="checkbox" id="ropt-safe" checked>
+          <span title="Dodaje &amp;!shiny&amp;!shadow&amp;!lucky&amp;!favorite do każdej nazwy">bez shiny/shadow/lucky</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;color:var(--text)">
+          <input type="checkbox" id="ropt-iv">
+          <span title="Dodaje &amp;!3*&amp;!4* — wyklucza IV≥82%">bez 3★+</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;color:var(--text)">
+          <input type="checkbox" id="ropt-legendary">
+          <span title="Dodaje &amp;!legendary&amp;!mythical do każdej nazwy">bez legendary</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;color:var(--text)">
+          <input type="checkbox" id="ropt-cp">
+          <span>max CP:</span>
+        </label>
+        <input type="number" id="ropt-cp-val" placeholder="np. 500" min="10" max="9999"
+          style="width:68px;background:var(--bg2);border:1px solid var(--border);border-radius:5px;padding:2px 7px;color:var(--text);font-family:inherit;font-size:11px;outline:none">
+        <button class="btn btn-outline btn-sm" id="btn-copy-regex" style="margin-left:auto">📋 Kopiuj</button>
+        <span id="regex-hint" style="color:var(--muted);font-size:10px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Pokemon</th>
+              <th>CP</th>
+              <th>Lvl</th>
+              <th>IV%</th>
+              <th>A/D/S</th>
+              <th>Rok</th>
+              <th>Meta</th>
+              <th>Tagi</th>
+              <th>AI</th>
+            </tr>
+          </thead>
+          <tbody id="poke-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── TAB: Raidy ──────────────────────────────────────── -->
+    <div class="panel" id="panel-raid">
+      <div class="alert alert-info" style="margin-bottom:12px">
+        Ranking uwzględnia bazowe statystyki (DPS×TDO proxy), IV oraz tier listę meta. Posortowane od najlepszego do najgorszego.
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Pokemon</th><th>CP</th><th>Lvl</th><th>IV%</th>
+              <th>A/D/S</th><th>Max CP@L50</th><th>Tier</th><th>Tagi</th><th>AI</th>
+            </tr>
+          </thead>
+          <tbody id="raid-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── TAB: PvP ────────────────────────────────────────── -->
+    <div class="panel" id="panel-pvp">
+      <div class="toolbar">
+        <button class="tab-sub active" data-league="GL">🟦 Great League ≤1500</button>
+        <button class="tab-sub" data-league="UL">🟣 Ultra League ≤2500</button>
+        <button class="tab-sub" data-league="ML">🟡 Master League</button>
+      </div>
+      <div class="alert alert-info" style="margin-bottom:12px">
+        Ranking uwzględnia CP przy limicie ligi, bulk (def×sta), tier listę meta. Posortowane od najlepszego do najgorszego.
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Pokemon</th><th>Akt. CP</th><th>CP w lidze</th><th>Lvl</th><th>IV%</th>
+              <th>A/D/S</th><th>Tier</th><th>Tagi</th><th>AI</th>
+            </tr>
+          </thead>
+          <tbody id="pvp-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="panel" id="panel-items">
+      <div class="card">
+        <div class="card-title">🎒 Ekwipunek</div>
+        <div id="items-grid" class="items-grid"></div>
+      </div>
+      <button class="btn btn-primary" id="btn-analyze-items">🤖 Analiza AI — co i na kogo</button>
+      <div id="items-ai-result" style="margin-top:14px;display:none" class="card">
+        <div class="card-title" id="items-ai-title">Analiza ekwipunku</div>
+        <div class="ai-resp" id="items-ai-body"></div>
+      </div>
+    </div>
+
+    <!-- ── TAB: Eventy ────────────────────────────────────── -->
+    <div class="panel" id="panel-events">
+      <div class="toolbar">
+        <button class="btn btn-outline btn-sm" id="btn-refresh-events">🔄 Odśwież eventy</button>
+        <select id="events-filter">
+          <option value="all">Wszystkie</option>
+          <option value="active">🟢 Aktywne</option>
+          <option value="upcoming">🔵 Nadchodzące</option>
+          <option value="ended">⬜ Zakończone</option>
+        </select>
+      </div>
+      <div id="events-list" class="events-grid"></div>
+    </div>
+
+    <!-- ── TAB: Tier Lista ────────────────────────────────── -->
+    <div class="panel" id="panel-tiers">
+      <div class="alert alert-info" style="margin-bottom:14px">
+        Źródło: <a href="https://pokebase.app/pokemon-go/tier-lists" target="_blank">pokebase.app</a> (scraper + fallback).
+        Tier lista odświeżana co 24h automatycznie.
+        <button class="btn btn-outline btn-sm" id="btn-refresh-tiers" style="float:right">🔄 Refresh teraz</button>
+      </div>
+      <div id="tier-by-cat"></div>
+    </div>
+
+    <!-- ── TAB: Rozwój ───────────────────────────────────── -->
+    <div class="panel" id="panel-develop">
+
+      <div class="card">
+        <div class="card-title">🥚 Do ewoluowania</div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:12px">
+          Pokemony z IV ≥ 80%, których <strong>końcowa forma jest meta (tier S lub A)</strong>.
+          Ewolucja nie zmienia IV — warto ewoluować zanim będziesz power-upował.
+          Priorytet: tier końcowej formy, potem IV%.
+        </p>
+        <div class="tbl-wrap"><table>
+          <thead><tr>
+            <th>Pokemon (pre-evo)</th><th>CP</th><th>Lvl</th><th>IV%</th>
+            <th>→ Ewolucja</th><th>Tier</th><th>Tagi</th><th>AI</th>
+          </tr></thead>
+          <tbody id="dev-evolve-tbody"></tbody>
+        </table></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">⚡ Do ulepszenia (Power Up)</div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:12px">
+          Meta pokemon (tier S/A) z IV ≥ 80% poniżej <strong>poziomu 40</strong>.
+          Inwestycja w stardust opłaca się tylko dla meta okazów — reszta to przepalanie zasobów.
+        </p>
+        <div class="tbl-wrap"><table>
+          <thead><tr>
+            <th>Pokemon</th><th>CP</th><th>Lvl</th><th>IV%</th>
+            <th>A/D/S</th><th>Tier</th><th>Tagi</th><th>AI</th>
+          </tr></thead>
+          <tbody id="dev-powerup-tbody"></tbody>
+        </table></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">✨ Do oczyszczenia (Purify Shadow)</div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:12px">
+          Shadow pokemony, których IV <strong>po oczyszczeniu (każde IV +2, max 15)</strong> osiągnie ≥ 80%.
+          Przykład: 13/13/13 shadow → 15/15/15 = 100% po oczyszczeniu.
+          Shadow bonus (+20% ataku) vs. lepsze IV — zapytaj AI co bardziej się opłaca.
+        </p>
+        <div class="tbl-wrap"><table>
+          <thead><tr>
+            <th>Pokemon</th><th>CP</th><th>IV teraz</th><th>IV po ocz.</th>
+            <th>A/D/S → po oczyszcz.</th><th>Tier</th><th>AI</th>
+          </tr></thead>
+          <tbody id="dev-purify-tbody"></tbody>
+        </table></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">⚔️ Kandydaci na Elite TM</div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:12px">
+          Meta pokemon (tier S/A) na <strong>poziomie ≥ 35</strong> — warte sprawdzenia czy mają
+          optymalne ataki. Elite Fast/Charged TM pozwala nauczyć legacy lub ekskluzywnych ruchów.
+          Zapytaj AI który ruch konkretnie warto zmienić.
+        </p>
+        <div class="tbl-wrap"><table>
+          <thead><tr>
+            <th>Pokemon</th><th>CP</th><th>Lvl</th><th>IV%</th>
+            <th>Tier</th><th>Tagi</th><th>AI</th>
+          </tr></thead>
+          <tbody id="dev-tm-tbody"></tbody>
+        </table></div>
+      </div>
+
+    </div>
+
+    <!-- ── TAB: Ustawienia ────────────────────────────────── -->
+    <div class="panel" id="panel-settings">
+      <div class="card">
+        <div class="card-title">⚙️ Konfiguracja AI</div>
+        <div class="settings-section">
+          <h3>Provider</h3>
+          <div class="form-row">
+            <label>AI Provider</label>
+            <select id="cfg-provider">
+              <option value="gemini">Google Gemini</option>
+              <option value="azure">Azure OpenAI</option>
+              <option value="openai">OpenAI</option>
+              <option value="anthropic">Anthropic (Claude)</option>
+            </select>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h3>Klucze API</h3>
+          <div class="form-row"><label>Gemini API Key</label><input type="password" id="cfg-gemini" placeholder="AIza…"></div>
+          <div class="form-row"><label>OpenAI API Key</label><input type="password" id="cfg-openai" placeholder="sk-…"></div>
+          <div class="form-row"><label>Anthropic API Key</label><input type="password" id="cfg-anthropic" placeholder="sk-ant-…"></div>
+          <div class="form-row"><label>Azure Endpoint</label><input type="text" id="cfg-azure-ep" placeholder="https://…openai.azure.com"></div>
+          <div class="form-row"><label>Azure API Key</label><input type="password" id="cfg-azure-key" placeholder="…"></div>
+        </div>
+        <button class="btn btn-primary" id="btn-save-cfg">💾 Zapisz konfigurację</button>
+        <span id="cfg-saved" style="margin-left:10px;font-size:12px;color:var(--green);display:none">✓ Zapisano</span>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📦 Cache AI (SQLite)</div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:10px">
+          Odpowiedzi AI zapisywane wg hasha statystyk — ta sama kombinacja IV/CP nie kosztuje tokenu drugi raz.
+        </p>
+        <div class="cache-bar" id="cache-stats">
+          <span class="cache-stat">Łącznie: <b id="cs-total">—</b></span>
+          <span class="cache-stat">Dziś: <b id="cs-today">—</b></span>
+          <span class="cache-stat">Szac. zaoszczędzone: <b id="cs-saved">—</b> USD</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- #main-ui -->
+</div><!-- #app -->
+
+<!-- ── AI Modal ───────────────────────────────────────────────── -->
+<div id="ai-modal">
+  <div id="ai-box">
+    <div id="ai-box-header">
+      <span id="ai-box-title">Analiza AI</span>
+      <span id="ai-box-cached" class="badge" style="background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.3);display:none">z cache</span>
+      <button id="ai-box-close">✕</button>
+    </div>
+    <div id="ai-box-body">
+      <div id="ai-loading" style="text-align:center;padding:32px;display:none">
+        <div class="spinner"></div>
+        <p style="margin-top:10px;color:var(--muted);font-size:13px">Czekam na AI…</p>
+      </div>
+      <div class="ai-resp" id="ai-content"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+const S = {
+  pokemons: [],
+  items:    [],
+  events:   [],
+  tiers:    {},
+  filter:   "all",
+  search:   "",
+  sort:     "cp",
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const $$ = sel => document.querySelectorAll(sel);
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, {
+    headers: { "Content-Type": "application/json" },
+    ...opts,
+  });
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({ error: r.statusText }));
+    throw new Error(e.error || r.statusText);
+  }
+  return r.json();
+}
+
+function ivClass(iv) {
+  if (iv === 100) return "iv-s";
+  if (iv >= 82)   return "iv-a";
+  if (iv >= 60)   return "iv-n";
+  return "iv-l";
+}
+
+function tierBadge(tier) {
+  if (!tier) return "";
+  const cls = { S: "badge-s", A: "badge-a", B: "badge-b" }[tier] || "badge";
+  return `<span class="badge ${cls}">${tier}</span>`;
+}
+
+/** Convert simple markdown → HTML (for AI responses) */
+function mdToHtml(md) {
+  return md
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/^#{1,3} (.+)$/gm, (_, t) => `<h2>${t.replace(/\*\*/g,"")}</h2>`)
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*([^*]+)\*/g, "<em>$1</em>")
+    .replace(/^[-•] (.+)$/gm, "<li>$1</li>")
+    .replace(/(<li>.*<\/li>)+/g, m => `<ul>${m}</ul>`)
+    .replace(/^(\d+\. .+)$/gm, "<li>$1</li>")
+    .replace(/\n\n+/g, "</p><p>")
+    .replace(/\n/g, "<br>")
+    .replace(/^(.+)$/, "<p>$1</p>");
+}
+
+// ── Upload ────────────────────────────────────────────────────────────────────
+function setupUpload(input) {
+  input.addEventListener("change", async () => {
+    if (!input.files[0]) return;
+    const fd = new FormData();
+    fd.append("file", input.files[0]);
+    try {
+      const data = await fetch("/api/upload", { method: "POST", body: fd }).then(r => r.json());
+      if (data.error) throw new Error(data.error);
+      onUploadSuccess(data.stats);
+    } catch (e) {
+      showErr(e.message);
+    }
+    input.value = "";
+  });
+}
+setupUpload($("upload-input"));
+setupUpload($("upload-input-small"));
+
+// Drag & drop
+const zone = $("upload-zone");
+zone.addEventListener("dragover", e => { e.preventDefault(); zone.classList.add("drag"); });
+zone.addEventListener("dragleave", () => zone.classList.remove("drag"));
+zone.addEventListener("drop", e => {
+  e.preventDefault(); zone.classList.remove("drag");
+  const file = e.dataTransfer.files[0];
+  if (file) {
+    const fd = new FormData();
+    fd.append("file", file);
+    fetch("/api/upload", { method: "POST", body: fd })
+      .then(r => r.json())
+      .then(d => d.error ? showErr(d.error) : onUploadSuccess(d.stats))
+      .catch(e => showErr(e.message));
+  }
+});
+
+function showErr(msg) {
+  const el = $("upload-err");
+  el.textContent = "❌ " + msg;
+  el.style.display = "block";
+  setTimeout(() => { el.style.display = "none"; }, 5000);
+}
+
+async function onUploadSuccess(stats) {
+  $("upload-zone").style.display   = "none";
+  $("upload-err").style.display    = "none";
+  $("main-ui").style.display       = "block";
+  $("stats-bar").style.display     = "flex";
+  $("upload-small").style.display  = "block";
+  $("header-sub").textContent      = "Twoje konto Pokemon GO";
+
+  $("s-total").textContent  = stats.total;
+  $("s-shiny").textContent  = stats.shinies;
+  $("s-hundo").textContent  = stats.hundos;
+  $("s-shadow").textContent = stats.shadows;
+  $("s-lucky").textContent  = stats.luckies;
+  $("tb-poke").textContent  = `(${stats.total})`;
+
+  await Promise.all([loadPokemons(), loadItems(), loadEvents(), loadTiers(), loadCacheStats(), loadConfig()]);
+  loadRaid();
+  loadPvP("GL");
+  loadDevelop();
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+$$(".tab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    $$(".tab").forEach(b => b.classList.remove("active"));
+    $$(".panel").forEach(p => p.classList.remove("active"));
+    btn.classList.add("active");
+    $("panel-" + btn.dataset.tab).classList.add("active");
+  });
+});
+
+// ── Pokemony ──────────────────────────────────────────────────────────────────
+async function loadPokemons() {
+  S.pokemons = await api("/api/pokemons");
+  renderPokemons();
+}
+
+$("poke-search").addEventListener("input", e => { S.search = e.target.value.toLowerCase(); renderPokemons(); });
+$("poke-filter").addEventListener("change", e => { S.filter = e.target.value; renderPokemons(); });
+$("poke-sort").addEventListener("change",   e => { S.sort   = e.target.value; renderPokemons(); });
+
+function filterPoke(p) {
+  if (S.search && !p.name.toLowerCase().includes(S.search)) return false;
+  switch (S.filter) {
+    case "hundo":   return p.hundo;
+    case "shiny":   return p.shiny;
+    case "shadow":  return p.shadow;
+    case "lucky":   return p.lucky;
+    case "tier_s":  return p.best_tier === "S";
+    case "tier_a":  return p.best_tier === "A";
+    case "trash":   return !p.shiny && !p.fav && !p.shadow && p.iv_pct < 82.2 && p.year > 2022;
+    case "y2016":   return p.year >= 2016 && p.year <= 2018;
+    case "y2022":   return p.year >= 2019 && p.year <= 2022;
+    default:        return true;
+  }
+}
+
+function sortPokes(arr) {
+  return [...arr].sort((a, b) => {
+    if (S.sort === "iv")   return b.iv_pct - a.iv_pct;
+    if (S.sort === "lvl")  return b.lvl - a.lvl;
+    if (S.sort === "name") return a.name.localeCompare(b.name);
+    return b.cp - a.cp;
+  });
+}
+
+function renderPokemons() {
+  const list = sortPokes(S.pokemons.filter(filterPoke));
+  $("poke-count").textContent = `${list.length} / ${S.pokemons.length}`;
+  const tbody = $("poke-tbody");
+  tbody.innerHTML = list.map(p => {
+    const tiers = p.tiers || {};
+    const tierBadges = Object.entries(tiers)
+      .map(([cat, t]) => `<span class="badge badge-${t.toLowerCase()}" title="${cat}">${cat.split("_").pop().toUpperCase()} ${t}</span>`)
+      .join("");
+    const tags = [
+      p.shiny  ? `<span class="badge badge-shiny">✨</span>` : "",
+      p.shadow ? `<span class="badge badge-shadow">Shadow</span>` : "",
+      p.hundo  ? `<span class="badge badge-hundo">💯</span>` : "",
+      p.lucky  ? `<span class="badge badge-lucky">🍀</span>` : "",
+    ].join("");
+    const yr = p.year <= 2018 ? "year-old" : p.year <= 2022 ? "year-mid" : "";
+    return `<tr>
+      <td class="name-cell">${p.nick ? `<span title="${p.name}">${p.nick}</span>` : p.name}</td>
+      <td class="cp-cell">${p.cp}</td>
+      <td class="mono">${p.lvl}</td>
+      <td class="${ivClass(p.iv_pct)}">${p.iv_pct}%</td>
+      <td class="mono">${p.iv_a}/${p.iv_d}/${p.iv_s}</td>
+      <td class="${yr}">${p.year || "—"}</td>
+      <td>${tierBadges || '<span style="color:var(--muted);font-size:10px">—</span>'}</td>
+      <td>${tags}</td>
+      <td><button class="btn-ai" onclick="analyzeOnePokemon(${S.pokemons.indexOf(p)})">🤖 AI</button></td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="9" style="padding:24px;text-align:center;color:var(--muted)">Brak wyników</td></tr>`;
+}
+
+/**
+ * Buduje kwalifikator dla jednej nazwy wg zaznaczonych opcji.
+ * Format zgodny z wyszukiwarką Pokemon GO:
+ *   nazwa&!shiny&!shadow&!lucky&!favorite&!3*&!legendary&cp-500
+ */
+function buildPogoQuery() {
+  const list = sortPokes(S.pokemons.filter(filterPoke));
+  if (!list.length) return null;
+
+  // Gatunki chronione — jakikolwiek okaz jest shiny/shadow/lucky/fav/hundo/tier S-A
+  const protected_ = new Set(
+    S.pokemons
+      .filter(p => p.shiny || p.shadow || p.lucky || p.fav || p.hundo
+                || p.iv_pct >= 82.2 || p.best_tier === "S" || p.best_tier === "A")
+      .map(p => p.name)
+  );
+
+  const allNames  = [...new Set(list.map(p => p.name))];
+  const safeNames = allNames.filter(n => !protected_.has(n));
+  const skipped   = allNames.length - safeNames.length;
+
+  if (!safeNames.length) return { query: null, skipped, total: allNames.length };
+
+  // Buduj sufiks na podstawie opcji
+  let suffix = "";
+  if ($("ropt-safe").checked)      suffix += "&!shiny&!shadow&!lucky&!favorite";
+  if ($("ropt-iv").checked)        suffix += "&!3*&!4*";
+  if ($("ropt-legendary").checked) suffix += "&!legendary&!mythical";
+  if ($("ropt-cp").checked) {
+    const cpVal = $("ropt-cp-val").value;
+    if (cpVal) suffix += `&cp-${cpVal}`;
+  }
+
+  // PoGO używa przecinka jako OR — każda nazwa z sufiksem
+  const query = safeNames.map(n => n + suffix).join(",");
+  return { query, skipped, total: allNames.length };
+}
+
+$("btn-copy-regex").addEventListener("click", () => {
+  const result = buildPogoQuery();
+  if (!result) return;
+  const { query, skipped, total } = result;
+
+  if (!query) {
+    alert(`Wszystkie ${total} gatunków mają cenne okazy (shiny/shadow/lucky/meta) — query byłoby puste.\nSprawdź filtry.`);
+    return;
+  }
+
+  navigator.clipboard.writeText(query).then(() => {
+    const btn  = $("btn-copy-regex");
+    const prev = btn.textContent;
+    btn.textContent = skipped ? `✓ Skopiowano (${total - skipped}/${total} gat.)` : `✓ ${total - skipped} gatunków`;
+    btn.style.color = "var(--green)";
+    btn.style.borderColor = "var(--green)";
+    $("regex-hint").textContent = query.length > 60 ? query.slice(0, 57) + "…" : query;
+    setTimeout(() => { btn.textContent = prev; btn.style.color = ""; btn.style.borderColor = ""; }, 3000);
+  });
+});
+
+// ── Items ─────────────────────────────────────────────────────────────────────
+async function loadItems() {
+  S.items = await api("/api/items");
+  renderItems();
+}
+
+function renderItems() {
+  $("items-grid").innerHTML = S.items.map(it =>
+    `<div class="item-card">
+       <span class="item-name">${it.name}</span>
+       <span class="item-count">×${it.count}</span>
+     </div>`
+  ).join("") || `<p style="color:var(--muted);font-size:13px">Brak danych ekwipunku</p>`;
+}
+
+$("btn-analyze-items").addEventListener("click", async () => {
+  const btn = $("btn-analyze-items");
+  btn.disabled = true;
+  btn.textContent = "⏳ Analizuję…";
+  try {
+    const d = await api("/api/analyze-items", { method: "POST", body: "{}" });
+    $("items-ai-title").innerHTML = "Analiza ekwipunku " + (d.cached ? '<span class="badge badge-lucky">z cache</span>' : "");
+    $("items-ai-body").innerHTML  = mdToHtml(d.response);
+    $("items-ai-result").style.display = "block";
+  } catch (e) {
+    alert("Błąd AI: " + e.message);
+  }
+  btn.disabled = false;
+  btn.textContent = "🤖 Analiza AI — co i na kogo";
+});
+
+// ── Events ────────────────────────────────────────────────────────────────────
+async function loadEvents() {
+  S.events = await api("/api/events");
+  renderEvents();
+}
+
+$("btn-refresh-events").addEventListener("click", async () => {
+  $("btn-refresh-events").textContent = "⏳";
+  await api("/api/events/refresh", { method: "POST", body: "{}" });
+  await loadEvents();
+  $("btn-refresh-events").textContent = "🔄 Odśwież eventy";
+});
+
+$("events-filter").addEventListener("change", renderEvents);
+
+function renderEvents() {
+  const filt = $("events-filter").value;
+  const list = S.events.filter(ev => filt === "all" || ev.status === filt);
+  $("events-list").innerHTML = list.map(ev => {
+    const statusCls = { active:"status-active", upcoming:"status-upcoming", ended:"status-ended" }[ev.status] || "";
+    const statusLabel = { active:"🟢 Aktywny", upcoming:`🔵 Za ${ev.days_until}d`, ended:"⬜ Zakończony" }[ev.status] || ev.status;
+    const bonuses = ev.bonuses.slice(0,4).map(b => `<span style="font-size:11px">• ${typeof b === "string" ? b : JSON.stringify(b)}</span>`).join("<br>");
+    const spawns  = ev.spawns.slice(0,8).map(s => typeof s === "string" ? s : (s.name||"?")).join(", ");
+    return `<div class="event-card ${ev.status}">
+      <div class="event-header">
+        <div>
+          <div class="event-name">${ev.name}</div>
+          <div class="event-meta">${ev.start ? ev.start.split("T")[0] : ""} → ${ev.end ? ev.end.split("T")[0] : ""} · ${ev.type}</div>
+          ${ev.link ? `<a href="${ev.link}" target="_blank" style="font-size:11px">🔗 Szczegóły</a>` : ""}
+        </div>
+        <span class="event-status ${statusCls}">${statusLabel}</span>
+      </div>
+      ${bonuses ? `<div class="event-bonuses">${bonuses}</div>` : ""}
+      ${spawns  ? `<div style="font-size:11px;color:var(--muted);margin-bottom:8px">Spawny: ${spawns}</div>` : ""}
+      <div class="event-actions">
+        <button class="btn btn-primary btn-sm" onclick="generateEventStrategy('${ev.id}')">🤖 Strategia AI</button>
+        <div id="ev-loading-${ev.id}" style="display:none;align-items:center;gap:6px">
+          <div class="spinner"></div><span style="font-size:11px;color:var(--muted)">Generuję…</span>
+        </div>
+      </div>
+      <div id="ev-strategy-${ev.id}" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)" class="ai-resp"></div>
+    </div>`;
+  }).join("") || `<p style="color:var(--muted);font-size:13px">Brak eventów</p>`;
+}
+
+async function generateEventStrategy(evId) {
+  const ev = S.events.find(e => e.id === evId);
+  if (!ev) return;
+  $(`ev-loading-${evId}`).style.display = "flex";
+  try {
+    const d = await api("/api/event-strategy", {
+      method: "POST",
+      body: JSON.stringify({ event: ev }),
+    });
+    const box = $(`ev-strategy-${evId}`);
+    box.innerHTML = (d.cached ? '<span class="badge badge-lucky" style="margin-bottom:8px">z cache</span><br>' : "")
+      + mdToHtml(d.response);
+    box.style.display = "block";
+  } catch (e) {
+    alert("Błąd AI: " + e.message);
+  }
+  $(`ev-loading-${evId}`).style.display = "none";
+}
+
+// ── Tier list ─────────────────────────────────────────────────────────────────
+async function loadTiers() {
+  S.tiers = await api("/api/tier-list");
+  renderTiers();
+}
+
+$("btn-refresh-tiers").addEventListener("click", async () => {
+  $("btn-refresh-tiers").textContent = "⏳";
+  await api("/api/tier-list/refresh", { method: "POST", body: "{}" });
+  await loadTiers();
+  $("btn-refresh-tiers").textContent = "🔄 Refresh teraz";
+});
+
+function renderTiers() {
+  const cats = {
+    raid:        "⚔️ Raidy",
+    pvp_great:   "🏆 Great League",
+    pvp_ultra:   "🏆 Ultra League",
+    pvp_master:  "🏆 Master League",
+  };
+
+  $("tier-by-cat").innerHTML = Object.entries(cats).map(([cat, label]) => {
+    const byTier = {};
+    Object.entries(S.tiers).forEach(([name, cats]) => {
+      const t = cats[cat];
+      if (t) (byTier[t] = byTier[t] || []).push(name);
+    });
+
+    const rows = ["S","A","B","C","D"].map(t => {
+      const pokes = (byTier[t] || []).sort();
+      if (!pokes.length) return "";
+      return `<div class="tier-row">
+        <div class="tier-label tier-${t.toLowerCase()}">${t}</div>
+        <div class="tier-pokes">${pokes.map(n => `<span class="tier-chip">${n}</span>`).join("")}</div>
+      </div>`;
+    }).join("");
+
+    return `<div class="card">
+      <div class="card-title">${label}</div>
+      <div class="tier-grid">${rows || '<p style="color:var(--muted);font-size:12px">Brak danych</p>'}</div>
+    </div>`;
+  }).join("");
+}
+
+// ── AI Modal ──────────────────────────────────────────────────────────────────
+const modal    = $("ai-modal");
+const aiClose  = $("ai-box-close");
+const aiTitle  = $("ai-box-title");
+const aiCached = $("ai-box-cached");
+const aiLoading= $("ai-loading");
+const aiContent= $("ai-content");
+
+aiClose.addEventListener("click", () => modal.classList.remove("open"));
+modal.addEventListener("click",   e => { if (e.target === modal) modal.classList.remove("open"); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") modal.classList.remove("open"); });
+
+function openModal(title) {
+  aiTitle.textContent   = title;
+  aiCached.style.display= "none";
+  aiContent.innerHTML   = "";
+  aiLoading.style.display = "flex";
+  modal.classList.add("open");
+}
+
+function setModalContent(html, cached) {
+  aiLoading.style.display  = "none";
+  aiContent.innerHTML      = html;
+  aiCached.style.display   = cached ? "inline-block" : "none";
+}
+
+async function analyzeOnePokemon(idx) {
+  const p = S.pokemons[idx];
+  if (!p) return;
+  openModal(`${p.name} — Analiza AI`);
+  try {
+    const d = await api("/api/analyze-pokemon", {
+      method: "POST",
+      body: JSON.stringify({ pokemon: p }),
+    });
+    setModalContent(mdToHtml(d.response), d.cached);
+  } catch (e) {
+    setModalContent(`<p class="alert alert-err">Błąd: ${e.message}</p>`, false);
+  }
+}
+
+// ── Config & cache stats ──────────────────────────────────────────────────────
+async function loadConfig() {
+  const cfg = await api("/api/config");
+  $("cfg-provider").value = cfg.provider;
+}
+
+async function loadCacheStats() {
+  const s = await api("/api/cache/stats");
+  $("cs-total").textContent = s.total;
+  $("cs-today").textContent = s.today;
+  $("cs-saved").textContent = `~${s.est_saved_usd}`;
+}
+
+// ── Raid ──────────────────────────────────────────────────────────────────────
+let _raidData = [];
+async function loadRaid() {
+  _raidData = await api("/api/raid-candidates");
+  renderRaid();
+}
+
+function renderRaid() {
+  $("raid-tbody").innerHTML = _raidData.map((p, i) => {
+    const tiers = p.tiers || {};
+    const tb = Object.entries(tiers).map(([cat, t]) =>
+      `<span class="badge badge-${t.toLowerCase()}">${cat.split("_").pop().toUpperCase()} ${t}</span>`).join("");
+    const tags = [
+      p.shiny  ? `<span class="badge badge-shiny">✨</span>` : "",
+      p.shadow ? `<span class="badge badge-shadow">Shadow</span>` : "",
+      p.hundo  ? `<span class="badge badge-hundo">💯</span>` : "",
+      p.lucky  ? `<span class="badge badge-lucky">🍀</span>` : "",
+    ].join("");
+    return `<tr>
+      <td style="color:var(--muted);font-weight:700">${i+1}</td>
+      <td class="name-cell">${p.name}</td>
+      <td class="cp-cell">${p.cp}</td>
+      <td class="mono">${p.lvl}</td>
+      <td class="${ivClass(p.iv_pct)}">${p.iv_pct}%</td>
+      <td class="mono">${p.iv_a}/${p.iv_d}/${p.iv_s}</td>
+      <td style="color:var(--cyan);font-weight:600">${p.max_cp ? p.max_cp.toLocaleString() : "—"}</td>
+      <td>${tb || '<span style="color:var(--muted);font-size:10px">—</span>'}</td>
+      <td>${tags}</td>
+      <td><button class="btn-ai" onclick="analyzeOnePokemon(${S.pokemons.indexOf(S.pokemons.find(x=>x.pid===p.pid&&x.cp===p.cp))})">🤖 AI</button></td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="10" style="padding:24px;text-align:center;color:var(--muted)">Brak danych — wgraj plik JSON</td></tr>`;
+}
+
+// ── PvP ───────────────────────────────────────────────────────────────────────
+let _pvpData = {GL:[], UL:[], ML:[]};
+let _pvpLeague = "GL";
+
+$$(".tab-sub").forEach(btn => {
+  btn.addEventListener("click", () => {
+    $$(".tab-sub").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    _pvpLeague = btn.dataset.league;
+    if (!_pvpData[_pvpLeague].length) loadPvP(_pvpLeague);
+    else renderPvP();
+  });
+});
+
+async function loadPvP(league) {
+  _pvpData[league] = await api(`/api/pvp-candidates?league=${league}`);
+  if (_pvpLeague === league) renderPvP();
+}
+
+function renderPvP() {
+  const data = _pvpData[_pvpLeague];
+  const leagueColor = {GL:"var(--cyan)", UL:"var(--purple)", ML:"var(--yellow)"}[_pvpLeague];
+  $("pvp-tbody").innerHTML = data.map((p, i) => {
+    const tiers = p.tiers || {};
+    const tb = Object.entries(tiers).map(([cat, t]) =>
+      `<span class="badge badge-${t.toLowerCase()}">${cat.split("_").pop().toUpperCase()} ${t}</span>`).join("");
+    const tags = [
+      p.shiny  ? `<span class="badge badge-shiny">✨</span>` : "",
+      p.shadow ? `<span class="badge badge-shadow">Shadow</span>` : "",
+      p.hundo  ? `<span class="badge badge-hundo">💯</span>` : "",
+      p.lucky  ? `<span class="badge badge-lucky">🍀</span>` : "",
+    ].join("");
+    return `<tr>
+      <td style="color:var(--muted);font-weight:700">${i+1}</td>
+      <td class="name-cell">${p.name}</td>
+      <td class="cp-cell">${p.cp}</td>
+      <td style="font-weight:700;color:${leagueColor}">${p.pvp_cp || "—"}</td>
+      <td class="mono">${p.pvp_lvl || p.lvl}</td>
+      <td class="${ivClass(p.iv_pct)}">${p.iv_pct}%</td>
+      <td class="mono">${p.iv_a}/${p.iv_d}/${p.iv_s}</td>
+      <td>${tb || '<span style="color:var(--muted);font-size:10px">—</span>'}</td>
+      <td>${tags}</td>
+      <td><button class="btn-ai" onclick="analyzeOnePokemon(${S.pokemons.indexOf(S.pokemons.find(x=>x.pid===p.pid&&x.cp===p.cp))})">🤖 AI</button></td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="10" style="padding:24px;text-align:center;color:var(--muted)">Brak danych</td></tr>`;
+}
+
+// ── Rozwój ────────────────────────────────────────────────────────────────────
+let _developData = null;
+
+async function loadDevelop() {
+  _developData = await api("/api/develop-candidates");
+  renderDevelop();
+}
+
+function _devPokeIdx(p) {
+  return S.pokemons.indexOf(S.pokemons.find(x => x.pid === p.pid && x.cp === p.cp));
+}
+
+function renderDevelop() {
+  if (!_developData) return;
+  const d = _developData;
+
+  $("dev-evolve-tbody").innerHTML = d.evolve.map(p => {
+    const tags = [p.shiny ? `<span class="badge badge-shiny">✨</span>` : "",
+                  p.lucky ? `<span class="badge badge-lucky">🍀</span>` : ""].join("");
+    const tc = p.final_tier === "S" ? "badge-s" : "badge-a";
+    return `<tr>
+      <td class="name-cell">${p.name}</td>
+      <td class="cp-cell">${p.cp}</td>
+      <td class="mono">${p.lvl}</td>
+      <td class="${ivClass(p.iv_pct)}">${p.iv_pct}%</td>
+      <td style="color:var(--cyan);font-weight:700">→ ${p.final_name}</td>
+      <td><span class="badge ${tc}">${p.final_tier}</span></td>
+      <td>${tags}</td>
+      <td><button class="btn-ai" onclick="analyzeOnePokemon(${_devPokeIdx(p)})">🤖 AI</button></td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="8" style="padding:16px;text-align:center;color:var(--muted)">Brak kandydatów — potrzeba IV≥80% + meta końcowa forma</td></tr>`;
+
+  $("dev-powerup-tbody").innerHTML = d.power_up.map(p => {
+    const tc = p.best_tier === "S" ? "badge-s" : "badge-a";
+    const tags = [p.shiny  ? `<span class="badge badge-shiny">✨</span>` : "",
+                  p.shadow ? `<span class="badge badge-shadow">Shadow</span>` : "",
+                  p.lucky  ? `<span class="badge badge-lucky">🍀</span>` : ""].join("");
+    return `<tr>
+      <td class="name-cell">${p.name}</td>
+      <td class="cp-cell">${p.cp}</td>
+      <td class="mono">${p.lvl}</td>
+      <td class="${ivClass(p.iv_pct)}">${p.iv_pct}%</td>
+      <td class="mono">${p.iv_a}/${p.iv_d}/${p.iv_s}</td>
+      <td><span class="badge ${tc}">${p.best_tier}</span></td>
+      <td>${tags}</td>
+      <td><button class="btn-ai" onclick="analyzeOnePokemon(${_devPokeIdx(p)})">🤖 AI</button></td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="8" style="padding:16px;text-align:center;color:var(--muted)">Brak kandydatów — meta pokemony poniżej L40 z IV≥80%</td></tr>`;
+
+  $("dev-purify-tbody").innerHTML = d.purify.map(p => {
+    const pA = Math.min(15, p.iv_a+2), pD = Math.min(15, p.iv_d+2), pS = Math.min(15, p.iv_s+2);
+    const tc = p.best_tier === "S" ? "badge-s" : p.best_tier === "A" ? "badge-a" : "";
+    return `<tr>
+      <td class="name-cell">${p.name}</td>
+      <td class="cp-cell">${p.cp}</td>
+      <td class="${ivClass(p.iv_pct)}">${p.iv_pct}%</td>
+      <td class="${ivClass(p.purified_iv)}" style="font-weight:700">${p.purified_iv}%</td>
+      <td class="mono">${p.iv_a}/${p.iv_d}/${p.iv_s} → <span style="color:var(--green)">${pA}/${pD}/${pS}</span></td>
+      <td>${tc ? `<span class="badge ${tc}">${p.best_tier}</span>` : `<span style="color:var(--muted)">—</span>`}</td>
+      <td><button class="btn-ai" onclick="analyzeOnePokemon(${_devPokeIdx(p)})">🤖 AI</button></td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="7" style="padding:16px;text-align:center;color:var(--muted)">Brak shadow pokemonów z IV≥78 przed oczyszczeniem</td></tr>`;
+
+  $("dev-tm-tbody").innerHTML = d.elite_tm.map(p => {
+    const tc = p.best_tier === "S" ? "badge-s" : "badge-a";
+    const tags = [p.shiny  ? `<span class="badge badge-shiny">✨</span>` : "",
+                  p.shadow ? `<span class="badge badge-shadow">Shadow</span>` : "",
+                  p.lucky  ? `<span class="badge badge-lucky">🍀</span>` : ""].join("");
+    return `<tr>
+      <td class="name-cell">${p.name}</td>
+      <td class="cp-cell">${p.cp}</td>
+      <td class="mono">${p.lvl}</td>
+      <td class="${ivClass(p.iv_pct)}">${p.iv_pct}%</td>
+      <td><span class="badge ${tc}">${p.best_tier}</span></td>
+      <td>${tags}</td>
+      <td><button class="btn-ai" onclick="analyzeOnePokemon(${_devPokeIdx(p)})">🤖 AI</button></td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="7" style="padding:16px;text-align:center;color:var(--muted)">Brak kandydatów — meta pokemony na L≥35</td></tr>`;
+}
+
+$("btn-save-cfg").addEventListener("click", async () => {
+  const body = {
+    provider:      $("cfg-provider").value,
+    gemini_key:    $("cfg-gemini").value,
+    openai_key:    $("cfg-openai").value,
+    anthropic_key: $("cfg-anthropic").value,
+    azure_key:     $("cfg-azure-key").value,
+    azure_endpoint:$("cfg-azure-ep").value,
+  };
+  await api("/api/config", { method: "POST", body: JSON.stringify(body) });
+  const saved = $("cfg-saved");
+  saved.style.display = "inline";
+  setTimeout(() => { saved.style.display = "none"; }, 2500);
+});
+</script>
+</body>
+</html>

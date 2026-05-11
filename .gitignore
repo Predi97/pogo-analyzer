@@ -1,0 +1,8 @@
+.env
+venv/
+__pycache__/
+*.pyc
+*.pyo
+baza_pogo.db
+*.db
+.DS_Store

@@ -899,7 +899,7 @@ function buildPogoQuery() {
 
 // ── CSV Export ────────────────────────────────────────────────────────────────
 $("btn-export-csv").addEventListener("click", () => {
-  const list = sortPokes(S.pokemons.filter(filterPoke));
+  const list = sortPokes(S.pokemons);
   const headers = ["Nazwa","Pseudonim","CP","Lvl","IV%","Atk","Def","Sta","Rok",
                    "Shiny","Shadow","Lucky","Hundo","Ulubiony","Tier","Eventy"];
   const esc = v => `"${String(v ?? "").replace(/"/g,'""')}"`;

@@ -9,9 +9,11 @@ Uruchomienie:
     python app.py
 """
 
+import bisect
 import json
 import hashlib
 import logging
+import math
 import os
 import re
 import sqlite3
@@ -126,6 +128,12 @@ def init_db() -> None:
             source      TEXT PRIMARY KEY,
             last_ok     TEXT,
             last_err    TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS last_upload (
+            id       INTEGER PRIMARY KEY CHECK(id=1),
+            raw_json TEXT NOT NULL,
+            saved_at TEXT DEFAULT (datetime('now'))
         );
         """)
     log.info("DB ready: %s", DB_PATH)
@@ -356,17 +364,87 @@ DEX: dict[int, str] = {
 }
 
 ITEMS: dict[int, str] = {
-    1:"Poké Ball",2:"Great Ball",3:"Ultra Ball",4:"Master Ball",
-    101:"Potion",102:"Super Potion",103:"Hyper Potion",104:"Max Potion",
-    201:"Revive",202:"Max Revive",301:"Lucky Egg",401:"Incense",
-    501:"Fast TM",502:"Charged TM",503:"Elite Fast TM",504:"Elite Charged TM",
-    701:"Razz Berry",702:"Bluk Berry",703:"Nanab Berry",705:"Pinap Berry",
-    706:"Golden Razz Berry",708:"Silver Pinap Berry",
-    901:"Incubator",902:"Super Incubator",903:"Unlimited Incubator",
-    1106:"Sun Stone",1107:"King's Rock",1108:"Metal Coat",
-    1109:"Dragon Scale",1110:"Up-Grade",1111:"Sinnoh Stone",1112:"Unova Stone",
-    1201:"Star Piece",1301:"Raid Pass",1302:"Premium Battle Pass",1303:"Remote Raid Pass",
+    # Balls
+    1:"Poké Ball", 2:"Great Ball", 3:"Ultra Ball", 4:"Master Ball",
+    # Potions
+    101:"Potion", 102:"Super Potion", 103:"Hyper Potion", 104:"Max Potion",
+    # Revives
+    201:"Revive", 202:"Max Revive",
+    # Misc
+    301:"Lucky Egg", 401:"Incense",
+    # TMs (legacy IDs)
+    501:"Fast TM", 502:"Charged TM",
+    # Buddy food
+    650:"Buddy Beans", 651:"Buddy Snack",
+    # Berries
+    701:"Razz Berry", 702:"Bluk Berry", 703:"Nanab Berry", 705:"Pinap Berry",
+    706:"Golden Razz Berry", 708:"Silver Pinap Berry", 709:"Poffin",
+    # Camera
+    801:"GO Snapshot",
+    # Incubators — 901=infinite, 902=3-use, 903=super, 905=adventure
+    901:"Infinite Incubator", 902:"Egg Incubator", 903:"Super Incubator", 905:"Adventure Incubator",
+    # Evolution items (real IDs from PGSharp)
+    1101:"Sun Stone", 1102:"King's Rock", 1103:"Metal Coat", 1104:"Dragon Scale",
+    1105:"Up-Grade", 1106:"Sinnoh Stone", 1107:"Unova Stone", 1150:"Evolution Stone",
+    # TMs (new IDs)
+    1201:"Fast TM", 1202:"Charged TM", 1203:"Elite Fast TM", 1204:"Elite Charged TM",
+    # Candy
+    1301:"Rare Candy", 1302:"XL Rare Candy",
+    # Passes
+    1303:"Remote Raid Pass", 1401:"Raid Pass", 1402:"Premium Raid Pass",
+    # Misc collectibles
+    1404:"Star Piece", 1410:"PokéCoins", 1411:"Coin Bag",
+    1502:"Rocket Radar", 1505:"Shadow Gem", 1506:"Mega Energy",
 }
+
+# Human-readable fallback for names sourced directly from the JSON
+_ITEM_NAME_MAP: dict[str, str] = {
+    "TroyDisk": "Fast TM",
+    "MoveRerollFastAttack": "Fast TM",
+    "MoveRerollSpecialAttack": "Charged TM",
+    "MoveRerollEliteFastAttack": "Elite Fast TM",
+    "MoveRerollEliteSpecialAttack": "Elite Charged TM",
+    "IncubatorBasicUnlimited": "Infinite Incubator",
+    "IncubatorBasic": "Egg Incubator",
+    "IncubatorSuper": "Super Incubator",
+    "IncubatorSpecial": "Adventure Incubator",
+    "LuckyEgg": "Lucky Egg",
+    "IncenseOrdinary": "Incense",
+    "RazzBerry": "Razz Berry",
+    "PinapBerry": "Pinap Berry",
+    "GoldenRazzBerry": "Golden Razz Berry",
+    "GoldenPinapBerry": "Silver Pinap Berry",
+    "SpecialCamera": "GO Snapshot",
+    "SunStone": "Sun Stone",
+    "KingsRock": "King's Rock",
+    "UpGrade": "Up-Grade",
+    "Gen5EvolutionStone": "Unova Stone",
+    "OtherEvolutionStoneA": "Evolution Stone",
+    "XlRareCandy": "XL Rare Candy",
+    "RareCandy": "Rare Candy",
+    "StarPiece": "Star Piece",
+    "Mp": "Mega Energy",
+    "LeaderMap": "Rocket Radar",
+    "ShadowGem": "Shadow Gem",
+    "EnhancedCurrency": "PokéCoins",
+    "EnhancedCurrencyHolder": "Coin Bag",
+}
+
+
+def _resolve_item_name(iid: int, json_name: str) -> str:
+    """Return human-readable item name. Prefers curated dict, then JSON name mapping."""
+    if iid in ITEMS:
+        return ITEMS[iid]
+    if json_name in _ITEM_NAME_MAP:
+        return _ITEM_NAME_MAP[json_name]
+    if json_name.startswith("EventPassPoint"):
+        return "Event Points"
+    if json_name:
+        # CamelCase → spaced words
+        spaced = re.sub(r"(?<=[a-z])(?=[A-Z0-9])", " ", json_name)
+        spaced = re.sub(r"(?<=[0-9])(?=[A-Z])", " ", spaced).strip()
+        return spaced
+    return f"Item #{iid}"
 
 # ── CPM → level ───────────────────────────────────────────────────────────────
 
@@ -393,6 +471,9 @@ _CPM: list[tuple[float, float]] = [
     (48.5,.832799985),(49,.83530001),(49.5,.837800015),(50,.84029999),
 ]
 
+
+# Sorted CPM values for fast bisect in rank calculations
+_CPM_VALUES: list[float] = sorted(c for _, c in _CPM)
 
 def cpm_to_level(cpm: float) -> float:
     if not cpm:
@@ -427,6 +508,7 @@ def parse_pgo_json(raw: dict) -> dict:
     """
     pokemon_rows: list[dict] = []
     item_map: dict[int, int] = {}
+    item_json_names: dict[int, str] = {}  # id → itemName from JSON
 
     # ── Items: try top-level 'items' key first (PGSharp format)
     raw_items = raw.get("items", [])
@@ -437,8 +519,11 @@ def parse_pgo_json(raw: dict) -> dict:
             # PGSharp uses 'item' field; fallback to 'itemId'
             iid = it.get("item") or it.get("itemId")
             cnt = it.get("count", 0)
+            jname = it.get("itemName", "") or ""
             if iid is not None and cnt:
                 item_map[iid] = item_map.get(iid, 0) + cnt
+                if jname and iid not in item_json_names:
+                    item_json_names[iid] = jname
 
     def _walk(node):
         if isinstance(node, list):
@@ -500,7 +585,7 @@ def parse_pgo_json(raw: dict) -> dict:
     pokemons.sort(key=lambda x: -x["cp"])
 
     items = [
-        {"id": iid, "name": ITEMS.get(iid, f"Item #{iid}"), "count": cnt}
+        {"id": iid, "name": _resolve_item_name(iid, item_json_names.get(iid, "")), "count": cnt}
         for iid, cnt in sorted(item_map.items(), key=lambda kv: -kv[1])
     ]
 
@@ -1277,6 +1362,84 @@ def _pvp_cp(pid: int, iv_a: int, iv_d: int, iv_s: int, cp_limit: int) -> tuple[f
         lvl += 0.5
     return (best_lvl, best_cp)
 
+# ── PvP IV Rank ───────────────────────────────────────────────────────────────
+# Rank 1 = best possible IV combo for that pokemon in that league.
+# Lower ATK IVs are often better because they allow a higher level under the CP cap,
+# resulting in more HP/bulk — the opposite of raid logic.
+
+# (pid, cp_limit) → list of 4096 stat products sorted ASC
+_rank_cache: dict[tuple, list] = {}
+
+
+def _stat_product(ea: float, ed: float, es: float, c: float) -> float:
+    """PvPoke stat product: EffAtk × EffDef × EffHP where EffHP uses game floor."""
+    return ea * c * ed * c * math.floor(es * c)
+
+
+def _best_cpm_idx(ea: float, ed: float, es: float, cp_limit: int) -> int:
+    """Return index into _CPM_VALUES for the highest level where CP ≤ cp_limit."""
+    cp_base = ea * math.sqrt(ed) * math.sqrt(es) / 10.0
+    if cp_base <= 0:
+        return -1
+    max_cpm = math.sqrt((cp_limit + 1) / cp_base)
+    idx = bisect.bisect_right(_CPM_VALUES, max_cpm) - 1
+    # Guard: float rounding can push computed CP 1 over limit
+    if idx >= 0 and max(10, math.floor(cp_base * _CPM_VALUES[idx] ** 2)) > cp_limit:
+        idx -= 1
+    return idx
+
+
+def _build_rank_table(pid: int, cp_limit: int) -> list:
+    """Compute all 4096 stat products for a species at a given CP cap. Cached."""
+    key = (pid, cp_limit)
+    if key in _rank_cache:
+        return _rank_cache[key]
+    bs = _BS.get(pid)
+    if not bs:
+        _rank_cache[key] = []
+        return []
+    ba, bd, bst = bs
+    products: list[float] = []
+    for id_ in range(16):
+        ed = bd + id_
+        for is_ in range(16):
+            es = bst + is_
+            for ia in range(16):
+                ea = ba + ia
+                idx = _best_cpm_idx(ea, ed, es, cp_limit)
+                if idx < 0:
+                    products.append(0.0)
+                    continue
+                products.append(_stat_product(ea, ed, es, _CPM_VALUES[idx]))
+    products.sort()  # ascending — rank = len - bisect_right(sp) + 1
+    _rank_cache[key] = products
+    return products
+
+
+def _pvp_iv_rank(pid: int, iv_a: int, iv_d: int, iv_s: int, cp_limit: int) -> tuple:
+    """Return (rank, total, pct_of_max).
+    rank 1 = best stat product. pct_of_max is 0–100 float.
+    Returns (0, 0, 0.0) if species unknown.
+    """
+    table = _build_rank_table(pid, cp_limit)
+    if not table:
+        return (0, 0, 0.0)
+    bs = _BS.get(pid)
+    if not bs:
+        return (0, 0, 0.0)
+    ba, bd, bst = bs
+    ea = ba + iv_a
+    ed = bd + iv_d
+    es = bst + iv_s
+    idx = _best_cpm_idx(ea, ed, es, cp_limit)
+    if idx < 0:
+        return (len(table), len(table), 0.0)
+    sp = _stat_product(ea, ed, es, _CPM_VALUES[idx])
+    rank = len(table) - bisect.bisect_right(table, sp) + 1
+    pct  = round(sp / table[-1] * 100, 2) if table[-1] > 0 else 0.0
+    return (rank, len(table), pct)
+
+
 def _pvp_score(pid: int, iv_a: int, iv_d: int, iv_s: int,
                cp_limit: int, tiers: dict, name: str, league_key: str) -> float:
     lvl, cp = _pvp_cp(pid, iv_a, iv_d, iv_s, cp_limit)
@@ -1318,6 +1481,15 @@ def upload():
         _state["loaded"]   = True
         n = len(parsed["pokemons"])
         log.info("Uploaded: %d pokemons, %d item types", n, len(parsed["items"]))
+        # Persist raw JSON so state survives server restart
+        try:
+            with get_db() as db:
+                db.execute(
+                    "INSERT OR REPLACE INTO last_upload (id, raw_json, saved_at) VALUES (1, ?, ?)",
+                    (json.dumps(raw), _now_iso()),
+                )
+        except Exception as db_exc:
+            log.warning("Could not persist upload: %s", db_exc)
         return jsonify({
             "ok": True,
             "stats": {
@@ -1337,10 +1509,28 @@ def upload():
 @app.route("/api/pokemons")
 def api_pokemons():
     tiers = get_tier_list()
+
+    # Build spawn index from active + upcoming events: lowercase_name → [event_name, …]
+    event_spawn_index: dict[str, list[str]] = {}
+    try:
+        for ev in get_events():
+            if ev["status"] not in ("active", "upcoming"):
+                continue
+            label = ev["name"][:22].rstrip()
+            for s in ev.get("spawns", []):
+                pname = (s if isinstance(s, str) else s.get("name", "")).strip().lower()
+                if pname:
+                    event_spawn_index.setdefault(pname, []).append(label)
+    except Exception:
+        pass  # never break the pokemon list because of event fetch failure
+
     result = []
     for p in _state["pokemons"]:
-        tier_data = _tier_for(p["name"], tiers)
-        result.append({**p, "tiers": tier_data, "best_tier": _best_tier(tier_data)})
+        tier_data  = _tier_for(p["name"], tiers)
+        event_tags = event_spawn_index.get(p["name"].lower(), [])
+        gl_rank, _, _gl_pct = _pvp_iv_rank(p["pid"], p["iv_a"], p["iv_d"], p["iv_s"], 1500)
+        result.append({**p, "tiers": tier_data, "best_tier": _best_tier(tier_data),
+                       "event_tags": event_tags, "gl_rank": gl_rank})
     return jsonify(result)
 
 
@@ -1383,11 +1573,13 @@ def api_pvp_candidates():
         score = _pvp_score(p["pid"], p["iv_a"], p["iv_d"], p["iv_s"],
                            cp_limit, tiers, p["name"], lkey)
         if score < 1: continue
-        lvl, best_cp = _pvp_cp(p["pid"], p["iv_a"], p["iv_d"], p["iv_s"], cp_limit)
+        lvl, best_cp         = _pvp_cp(p["pid"], p["iv_a"], p["iv_d"], p["iv_s"], cp_limit)
+        rank, total, rank_pct = _pvp_iv_rank(p["pid"], p["iv_a"], p["iv_d"], p["iv_s"], cp_limit)
         tier_data = _tier_for(p["name"], tiers)
         scored.append({**p, "pvp_score": round(score), "pvp_cp": best_cp,
                        "pvp_lvl": lvl, "tiers": tier_data,
-                       "best_tier": _best_tier(tier_data)})
+                       "best_tier": _best_tier(tier_data),
+                       "pvp_rank": rank, "pvp_rank_total": total, "pvp_rank_pct": rank_pct})
     scored.sort(key=lambda x: -x["pvp_score"])
     return jsonify(scored[:60])
 
@@ -1588,10 +1780,46 @@ def api_cache_stats():
     return jsonify({"total": total, "today": today, "est_saved_usd": round(saved, 2)})
 
 
+@app.route("/api/status")
+def api_status():
+    if not _state["loaded"]:
+        return jsonify({"loaded": False})
+    pokemons = _state["pokemons"]
+    return jsonify({
+        "loaded": True,
+        "stats": {
+            "total":      len(pokemons),
+            "shinies":    sum(1 for p in pokemons if p["shiny"]),
+            "shadows":    sum(1 for p in pokemons if p["shadow"]),
+            "hundos":     sum(1 for p in pokemons if p["hundo"]),
+            "luckies":    sum(1 for p in pokemons if p["lucky"]),
+            "item_types": len(_state["items"]),
+        },
+    })
+
+
 # ── Startup ───────────────────────────────────────────────────────────────────
+
+def _load_last_state():
+    """Restore last uploaded JSON from DB so state survives server restarts."""
+    try:
+        with get_db() as db:
+            row = db.execute("SELECT raw_json FROM last_upload WHERE id=1").fetchone()
+        if not row:
+            return
+        raw = json.loads(row["raw_json"])
+        parsed = parse_pgo_json(raw)
+        _state["pokemons"] = parsed["pokemons"]
+        _state["items"]    = parsed["items"]
+        _state["loaded"]   = True
+        log.info("Restored last upload: %d pokemons", len(parsed["pokemons"]))
+    except Exception as exc:
+        log.warning("Could not restore last upload: %s", exc)
+
 
 if __name__ == "__main__":
     init_db()
+    _load_last_state()
     # Background tier refresh so first page load is fast
     if _tier_refresh_needed():
         log.info("Starting background tier scrape…")

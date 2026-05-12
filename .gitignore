@@ -5,4 +5,7 @@ __pycache__/
 *.pyo
 baza_pogo.db
 *.db
+*.db-shm
+*.db-wal
 .DS_Store
+PGSStats.json

@@ -9,3 +9,7 @@ baza_pogo.db
 *.db-wal
 .DS_Store
 PGSStats.json
+*.dat
+*.json
+*.csv
+*.deb

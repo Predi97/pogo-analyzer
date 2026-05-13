@@ -361,6 +361,7 @@ tr:hover td{background:rgba(163,240,80,.025)}
     <div class="stat-chip">💯 Hundo <b id="s-hundo">0</b></div>
     <div class="stat-chip">👻 Shadow <b id="s-shadow">0</b></div>
     <div class="stat-chip">🍀 Lucky <b id="s-lucky">0</b></div>
+    <div class="stat-chip">⭐ Stardust <b id="s-dust">—</b></div>
   </div>
 
   <nav id="tabs">
@@ -439,7 +440,19 @@ tr:hover td{background:rgba(163,240,80,.025)}
           <input type="checkbox" id="ropt-cp">
           <span>max CP:</span>
         </label>
-        <input type="number" id="ropt-cp-val" placeholder="np. 500" min="10" max="9999">
+        <input type="number" id="ropt-cp-val" placeholder="np. 500" min="10" max="9999" style="width:70px">
+        <label title="Chroni pokemony z CP powyżej tej wartości przed wylądowaniem w query (nie są transferem)">
+          <span style="white-space:nowrap">chroń CP≥</span>
+        </label>
+        <input type="number" id="ropt-cp-min" placeholder="1200" min="10" max="9999" value="1200" style="width:65px">
+        <label title="Chroni pokemony z dobrym rankiem PvP GL (rank ≤500) przed wylądowaniem w query">
+          <input type="checkbox" id="ropt-pvp" checked>
+          <span>chroń PvP</span>
+        </label>
+        <label title="Chroni pokemony z poziomem ≥35">
+          <input type="checkbox" id="ropt-lvl" checked>
+          <span>chroń lvl≥35</span>
+        </label>
         <button class="btn btn-outline btn-sm" id="btn-copy-regex" style="margin-left:auto">📋 Kopiuj regex</button>
         <span id="regex-hint" style="color:var(--muted);font-size:10px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
       </div>
@@ -453,6 +466,8 @@ tr:hover td{background:rgba(163,240,80,.025)}
           <span class="badge badge-event" title="Pokemon pojawia się w aktywnym lub nadchodzącym evencie">📅 Event</span>
         </div>
         <button class="btn btn-outline btn-sm" id="btn-export-csv">📥 Export CSV</button>
+        <a class="btn btn-outline btn-sm" href="/api/export/raw-csv" download="pogo_raw_export.csv" title="Pełny eksport 1:1 z PGSStats.json — wszystkie 80 pól + nazwa gatunku">📦 Raw JSON→CSV</a>
+        <a class="btn btn-outline btn-sm" href="/api/export/inventory-csv" download="pogo_inventory.csv" title="Stardust, PokéCoiny, Rare Candy + pełna lista ekwipunku">💰 Ekwipunek CSV</a>
       </div>
       <div class="tbl-wrap">
         <table>
@@ -781,6 +796,7 @@ async function onUploadSuccess(stats) {
   $("s-shadow").textContent = stats.shadows;
   $("s-lucky").textContent  = stats.luckies;
   $("tb-poke").textContent  = stats.total;
+  if (stats.stardust) $("s-dust").textContent = stats.stardust.toLocaleString("pl-PL");
 
   await Promise.all([loadPokemons(), loadItems(), loadEvents(), loadTiers(), loadCacheStats(), loadConfig()]);
   loadRaid();
@@ -871,18 +887,30 @@ function buildPogoQuery() {
   const list = sortPokes(S.pokemons.filter(filterPoke));
   if (!list.length) return null;
 
+  const cpMin  = parseInt($("ropt-cp-min").value) || 1200;
+  const pvpOn  = $("ropt-pvp").checked;
+  const lvlOn  = $("ropt-lvl").checked;
+
   const protected_ = new Set(
     S.pokemons
-      .filter(p => p.shiny || p.shadow || p.lucky || p.fav || p.hundo
-                || p.iv_pct >= 82.2 || p.best_tier === "S" || p.best_tier === "A")
+      .filter(p =>
+        p.shiny || p.shadow || p.lucky || p.fav || p.hundo
+        || p.iv_pct >= 82.2
+        || p.best_tier === "S" || p.best_tier === "A"
+        || p.cp  >= cpMin                          // za wysokie CP
+        || (pvpOn && p.gl_rank > 0 && p.gl_rank <= 500)  // dobry PvP GL rank
+        || (lvlOn && p.lvl >= 35)                  // wysoki poziom
+      )
       .map(p => p.name)
   );
 
-  const allNames  = [...new Set(list.map(p => p.name))];
-  const safeNames = allNames.filter(n => !protected_.has(n));
-  const skipped   = allNames.length - safeNames.length;
+  // deduplikuj po nazwie gatunku
+  const seen = new Set();
+  const allPokes = list.filter(p => seen.has(p.name) ? false : (seen.add(p.name), true));
+  const safePokes = allPokes.filter(p => !protected_.has(p.name));
+  const skipped   = allPokes.length - safePokes.length;
 
-  if (!safeNames.length) return { query: null, skipped, total: allNames.length };
+  if (!safePokes.length) return { query: null, skipped, total: allPokes.length };
 
   let suffix = "";
   if ($("ropt-safe").checked)      suffix += "&!shiny&!shadow&!lucky&!favorite";
@@ -893,8 +921,26 @@ function buildPogoQuery() {
     if (cpVal) suffix += `&cp-${cpVal}`;
   }
 
-  const query = safeNames.map(n => n + suffix).join(",");
-  return { query, skipped, total: allNames.length };
+  // IDs Pokédexu zamiast nazw; sufiks JEDEN raz na końcu całej grupy
+  const ids = [...new Set(safePokes.map(p => p.pid))];
+
+  // chunking: każda paczka IDs + sufiks ≤ 300 znaków
+  const LIMIT = 300;
+  const chunks = [];
+  let cur = [], curLen = 0;
+  for (const id of ids) {
+    const s = String(id);
+    const add = cur.length ? s.length + 1 : s.length;   // +1 za przecinek
+    if (cur.length && curLen + add + suffix.length > LIMIT) {
+      chunks.push(cur.join(",") + suffix);
+      cur = [s]; curLen = s.length;
+    } else {
+      cur.push(s); curLen += add;
+    }
+  }
+  if (cur.length) chunks.push(cur.join(",") + suffix);
+
+  return { chunks, skipped, total: allPokes.length };
 }
 
 // ── CSV Export ────────────────────────────────────────────────────────────────
@@ -925,13 +971,23 @@ $("btn-export-csv").addEventListener("click", () => {
 $("btn-copy-regex").addEventListener("click", () => {
   const result = buildPogoQuery();
   if (!result) return;
-  const { query, skipped, total } = result;
+  const { chunks, skipped, total } = result;
 
-  if (!query) {
+  if (!chunks) {
     alert(`Wszystkie ${total} gatunków mają cenne okazy (shiny/shadow/lucky/meta) — query byłoby puste.\nSprawdź filtry.`);
     return;
   }
 
+  // jeśli >1 paczka — pokaż dialog z wszystkimi chunkami do ręcznego kopiowania
+  if (chunks.length > 1) {
+    const msg = `Za dużo ID — podzielono na ${chunks.length} paczki (każda ≤300 znaków):\n\n`
+      + chunks.map((c, i) => `Paczka ${i+1}:\n${c}`).join("\n\n");
+    alert(msg);
+    $("regex-hint").textContent = `${chunks.length} paczek · ${total - skipped} gatunków`;
+    return;
+  }
+
+  const query = chunks[0];
   navigator.clipboard.writeText(query).then(() => {
     const btn  = $("btn-copy-regex");
     const prev = btn.textContent;

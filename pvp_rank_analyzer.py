@@ -1,0 +1,414 @@
+"""
+PvP Rank Analyzer — standalone script (pandas + SQLite)
+========================================================
+Wylicza pvp_gl_rank / pvp_ul_rank dla setek pokemonów naraz.
+
+Matematyka (PvPoke-compatible):
+  CP        = max(10, floor(EffAtk * sqrt(EffDef) * sqrt(EffSta) * CPM² / 10))
+  EffAtk    = (BaseAtk + iv_a) * CPM
+  EffDef    = (BaseDef + iv_d) * CPM
+  EffHP     = floor((BaseSta + iv_s) * CPM)          ← game-accurate floor
+  StatProd  = EffAtk * EffDef * EffHP
+  Rank      = pozycja w rankingu 4096 komboi IV (rank 1 = max StatProd)
+
+Niższe IV Atk często dają wyższy rank — pozwalają wejść na wyższy poziom
+pod tym samym limitem CP, zyskując więcej bulk.
+"""
+
+from __future__ import annotations
+
+import bisect
+import math
+import sqlite3
+from pathlib import Path
+from typing import NamedTuple
+
+import pandas as pd
+import requests
+
+# ── Konfiguracja ──────────────────────────────────────────────────────────────
+
+GL_CAP = 1500
+UL_CAP = 2500
+
+DB_PATH   = Path("baza_pogo.db")    # SQLite z projektu
+CSV_PATH  = Path("pokemons.csv")    # alternatywnie CSV: Gatunek,CP,Lvl,iv_a,iv_d,iv_s
+
+# ── Pełna tabela CPM (poziomy 1–50.5, krok 0.5) ─────────────────────────────
+
+_CPM_RAW = [
+    (1,0.09399414),(1.5,0.13513743),(2,0.16639787),(2.5,0.19265092),
+    (3,0.21573248),(3.5,0.23657266),(4,0.25572005),(4.5,0.27353038),
+    (5,0.29024988),(5.5,0.30605738),(6,0.32108760),(6.5,0.33544503),
+    (7,0.34921268),(7.5,0.36245775),(8,0.37523559),(8.5,0.38759241),
+    (9,0.39956728),(9.5,0.41119652),(10,0.42250001),(10.5,0.43350011),
+    (11,0.44421455),(11.5,0.45465978),(12,0.46484551),(12.5,0.47478905),
+    (13,0.48450004),(13.5,0.49399738),(14,0.50328548),(14.5,0.51236915),
+    (15,0.52125245),(15.5,0.52994049),(16,0.53844410),(16.5,0.54677267),
+    (17,0.55492783),(17.5,0.56290743),(18,0.57072796),(18.5,0.57839370),
+    (19,0.58591676),(19.5,0.59330070),(20,0.60055534),(20.5,0.60768080),
+    (21,0.61468170),(21.5,0.62156469),(22,0.62833195),(22.5,0.63498560),
+    (23,0.64153051),(23.5,0.64796958),(24,0.65430570),(24.5,0.66054094),
+    (25,0.66667735),(25.5,0.67271632),(26,0.67865981),(26.5,0.68451109),
+    (27,0.69027400),(27.5,0.69595033),(28,0.70153999),(28.5,0.70704751),
+    (29,0.71247458),(29.5,0.71782560),(30,0.72309999),(30.5,0.72830370),
+    (31,0.73344001),(31.5,0.73851001),(32,0.74351993),(32.5,0.74846007),
+    (33,0.75334001),(33.5,0.75816000),(34,0.76291998),(34.5,0.76762003),
+    (35,0.77225998),(35.5,0.77684003),(36,0.78136998),(36.5,0.78584003),
+    (37,0.79025999),(37.5,0.79462999),(38,0.79893999),(38.5,0.80320999),
+    (39,0.80742002),(39.5,0.81158003),(40,0.81567997),(40.5,0.81974000),
+    (41,0.82372999),(41.5,0.82767999),(42,0.83157998),(42.5,0.83542997),
+    (43,0.83923000),(43.5,0.84298003),(44,0.84668004),(44.5,0.85033000),
+    (45,0.85393000),(45.5,0.85748999),(46,0.86100003),(46.5,0.86447001),
+    (47,0.86790003),(47.5,0.87129002),(48,0.87463999),(48.5,0.87795001),
+    (49,0.88122004),(49.5,0.88445002),(50,0.88763999),(50.5,0.89079499),
+    (51,0.89390999),
+]
+
+_CPM_TABLE: dict[float, float] = {lvl: c for lvl, c in _CPM_RAW}
+_CPM_VALUES: list[float] = sorted(c for _, c in _CPM_RAW)
+
+
+def _cpm(level: float) -> float:
+    return _CPM_TABLE.get(level, _CPM_RAW[-1][1])
+
+
+# ── Base Stats — PvPoke gamemaster z lokalnym cache ───────────────────────────
+# Źródło: github.com/pvpoke/pvpoke (wszystkie ~900 pokemonów + formy)
+# Cache: SQLite tabela `pvpoke_base_stats`, odświeżany co CACHE_TTL_DAYS dni.
+
+PVPOKE_URL     = "https://raw.githubusercontent.com/pvpoke/pvpoke/master/src/data/gamemaster/pokemon.json"
+CACHE_TTL_DAYS = 7  # odśwież raz w tygodniu
+
+# Mapowanie nazw z parsera projektu → speciesId PvPoke
+# Format PvPoke: snake_case, formy przez "_" (np. "ninetales_alolan")
+_FORM_MAP: dict[str, str] = {
+    "galarian":  "_galarian",
+    "hisuian":   "_hisuian",
+    "alolan":    "_alolan",
+    "paldean":   "_paldean",
+    "female":    "_female",
+    "male":      "_male",
+    "normal":    "",           # forma Normal = baza
+}
+
+_ABBREV_MAP = {
+    "(g)": "galarian", "(h)": "hisuian", "(a)": "alolan",
+    "(p)": "paldean",  "(f)": "female",  "(m)": "male",
+}
+
+# Pokemony z wieloma formami — domyślna forma gdy brak specyfikacji
+_DEFAULT_FORM: dict[str, str] = {
+    "oricorio":  "oricorio_baile",
+    "pumpkaboo": "pumpkaboo_average",
+    "gourgeist": "gourgeist_average",
+    "lycanroc":  "lycanroc_midday",
+    "minior":    "minior_red_meteor",
+}
+
+def _normalize_name(name: str) -> list[str]:
+    """
+    Zamienia nazwę wyświetlaną na kandydatów speciesId PvPoke.
+    Obsługuje pełne formy ('Alolan') i skróty ('(A)', '(G)' itp.).
+    Np. 'Meowth (G)' → ['meowth_galarian', 'meowth']
+        'Ninetales (Alolan)' → ['ninetales_alolan', 'ninetales']
+    """
+    import re
+    n = name.lower().strip()
+    n = n.replace("♀", "_female").replace("♂", "_male")
+
+    # skróty jednoliterowe w nawiasach: (g)→galarian, (f)→female itp.
+    # usuwamy spację przed nawiasem żeby uniknąć podwójnego __
+    for abbrev, full in _ABBREV_MAP.items():
+        n = re.sub(r"\s*" + re.escape(abbrev), "_" + full, n)
+
+    # pełne nazwy form w nawiasach: (alolan), (galarian) itp.
+    n = re.sub(r"\s*\(([^)]+)\)", lambda m: "_" + m.group(1).strip(), n)
+
+    n = n.replace(" ", "_").replace("-", "_").replace("'", "").replace(".", "")
+    # usuń podwójne podkreślniki
+    n = re.sub(r"_+", "_", n).strip("_")
+
+    # domyślna forma dla pokemonów wieloformowych
+    if n in _DEFAULT_FORM:
+        return [_DEFAULT_FORM[n], n]
+
+    # fallback: wersja bez sufiksu formy
+    base = re.sub(
+        r"_(galarian|hisuian|alolan|paldean|female|male|normal)$", "", n
+    )
+    return [n, base] if n != base else [n]
+
+
+def _load_pvpoke_cache() -> dict[str, tuple[int, int, int]]:
+    """Wczytuje base stats z SQLite cache (tabela pvpoke_base_stats)."""
+    if not DB_PATH.exists():
+        return {}
+    import json as _json
+    con = sqlite3.connect(DB_PATH)
+    try:
+        row = con.execute(
+            "SELECT data, fetched_at FROM pvpoke_base_stats LIMIT 1"
+        ).fetchone()
+        if not row:
+            return {}
+        from datetime import datetime, timezone
+        age = (datetime.now(timezone.utc) -
+               datetime.fromisoformat(row[1])).days
+        if age > CACHE_TTL_DAYS:
+            return {}  # wymusi refresh
+        return _json.loads(row[0])
+    except sqlite3.OperationalError:
+        return {}
+    finally:
+        con.close()
+
+
+def _save_pvpoke_cache(bs_map: dict[str, tuple[int, int, int]]) -> None:
+    """Zapisuje base stats do SQLite cache."""
+    import json as _json
+    from datetime import datetime, timezone
+    if not DB_PATH.exists():
+        return
+    con = sqlite3.connect(DB_PATH)
+    con.execute(
+        "CREATE TABLE IF NOT EXISTS pvpoke_base_stats "
+        "(id INTEGER PRIMARY KEY, data TEXT, fetched_at TEXT)"
+    )
+    con.execute("DELETE FROM pvpoke_base_stats")
+    con.execute(
+        "INSERT INTO pvpoke_base_stats VALUES (1, ?, ?)",
+        (_json.dumps(bs_map), datetime.now(timezone.utc).isoformat()),
+    )
+    con.commit()
+    con.close()
+
+
+def _fetch_pvpoke() -> dict[str, tuple[int, int, int]]:
+    """Pobiera cały gamemaster PvPoke i buduje słownik speciesId → (atk, def, hp)."""
+    print(f"[INFO] Pobieranie PvPoke gamemaster ({PVPOKE_URL.split('/')[2]})…")
+    resp = requests.get(PVPOKE_URL, timeout=20)
+    resp.raise_for_status()
+    result: dict[str, tuple[int, int, int]] = {}
+    for p in resp.json():
+        sid   = p.get("speciesId", "").lower()
+        stats = p.get("baseStats", {})
+        if sid and stats.get("atk"):
+            result[sid] = (stats["atk"], stats["def"], stats["hp"])
+    print(f"[INFO] Pobrano {len(result)} wpisów z PvPoke gamemaster")
+    return result
+
+
+def load_base_stats() -> dict[str, tuple[int, int, int]]:
+    """
+    Zwraca słownik nazwa_pokemon → (BaseAtk, BaseDef, BaseSta).
+    Kolejność: SQLite cache → fetch PvPoke → fallback lokalny _BS.
+    """
+    # 1. Cache
+    bs_raw = _load_pvpoke_cache()
+    if not bs_raw:
+        try:
+            bs_raw = _fetch_pvpoke()
+            _save_pvpoke_cache(bs_raw)
+        except Exception as e:
+            print(f"[WARN] Nie można pobrać PvPoke: {e}")
+
+    # 2. Fallback na lokalne _BS z projektu jeśli fetch się nie powiódł
+    if not bs_raw:
+        print("[WARN] Używam lokalnych base stats (183 meta)")
+        try:
+            import sys; sys.path.insert(0, str(Path(__file__).parent))
+            from data.base_stats import _BS
+            from data.pokedex import DEX
+            return {DEX[pid].lower(): bs for pid, bs in _BS.items() if pid in DEX}
+        except ImportError:
+            return {}
+
+    return bs_raw
+
+
+def resolve_base_stats(
+    name: str,
+    bs_raw: dict[str, tuple[int, int, int]],
+) -> tuple[int, int, int] | None:
+    """
+    Tłumaczy nazwę wyświetlaną pokemona na base stats z bs_raw.
+    Próbuje kilku wariantów nazwy żeby obsłużyć formy regionalne.
+    """
+    for candidate in _normalize_name(name):
+        if candidate in bs_raw:
+            return bs_raw[candidate]
+    return None
+
+
+# ── Stat Product & Rank ───────────────────────────────────────────────────────
+
+_rank_cache: dict[tuple, list[float]] = {}
+
+
+def _best_cpm_idx(ea: float, ed: float, es: float, cp_limit: int) -> int:
+    """Bisekcja: indeks w _CPM_VALUES dla najwyższego poziomu gdzie CP ≤ cp_limit."""
+    cp_base = ea * math.sqrt(ed) * math.sqrt(es) / 10.0
+    if cp_base <= 0:
+        return -1
+    max_cpm = math.sqrt((cp_limit + 1) / cp_base)
+    idx = bisect.bisect_right(_CPM_VALUES, max_cpm) - 1
+    if idx >= 0 and max(10, math.floor(cp_base * _CPM_VALUES[idx] ** 2)) > cp_limit:
+        idx -= 1
+    return idx
+
+
+def _stat_product(ea: float, ed: float, es: float, c: float) -> float:
+    """EffAtk × EffDef × floor(EffHP) — game-accurate HP floor."""
+    return (ea * c) * (ed * c) * math.floor(es * c)
+
+
+def _build_rank_table(ba: int, bd: int, bst: int, cp_limit: int) -> list[float]:
+    """Wszystkie 4096 stat products dla danego gatunku przy danym limicie CP."""
+    key = (ba, bd, bst, cp_limit)
+    if key in _rank_cache:
+        return _rank_cache[key]
+    products: list[float] = []
+    for id_ in range(16):
+        ed = bd + id_
+        for is_ in range(16):
+            es = bst + is_
+            for ia in range(16):
+                ea  = ba + ia
+                idx = _best_cpm_idx(ea, ed, es, cp_limit)
+                products.append(
+                    _stat_product(ea, ed, es, _CPM_VALUES[idx]) if idx >= 0 else 0.0
+                )
+    products.sort()
+    _rank_cache[key] = products
+    return products
+
+
+def pvp_rank(ba: int, bd: int, bst: int,
+             iv_a: int, iv_d: int, iv_s: int,
+             cp_limit: int) -> tuple[int, int, float]:
+    """
+    Zwraca (rank, total, pct_of_max).
+    rank 1 = najwyższy stat product dla gatunku w danej lidze.
+    """
+    table = _build_rank_table(ba, bd, bst, cp_limit)
+    if not table:
+        return (0, 0, 0.0)
+    ea  = ba + iv_a
+    ed  = bd + iv_d
+    es  = bst + iv_s
+    idx = _best_cpm_idx(ea, ed, es, cp_limit)
+    if idx < 0:
+        return (len(table), len(table), 0.0)
+    sp   = _stat_product(ea, ed, es, _CPM_VALUES[idx])
+    rank = len(table) - bisect.bisect_right(table, sp) + 1
+    pct  = round(sp / table[-1] * 100, 2) if table[-1] > 0 else 0.0
+    return (rank, len(table), pct)
+
+
+# ── Wczytanie danych ─────────────────────────────────────────────────────────
+
+def load_pokemons() -> pd.DataFrame:
+    """
+    Wczytuje pokemony z SQLite (last_upload → parsed JSON) lub CSV.
+    Oczekiwane kolumny: name, iv_a, iv_d, iv_s
+    """
+    if DB_PATH.exists():
+        import json
+        con = sqlite3.connect(DB_PATH)
+        row = con.execute("SELECT raw_json FROM last_upload WHERE id=1").fetchone()
+        con.close()
+        if not row:
+            raise ValueError("Baza istnieje ale last_upload jest pusta — wgraj najpierw PGSStats.json przez aplikację.")
+        raw = json.loads(row[0])
+        # Parsujemy surowe PGSStats przez parser projektu
+        import sys; sys.path.insert(0, str(Path(__file__).parent))
+        from parser import parse_pgo_json
+        parsed = parse_pgo_json(raw)
+        df = pd.DataFrame(parsed["pokemons"])
+        if "species" in df.columns:
+            df = df.rename(columns={"species": "name"})
+    elif CSV_PATH.exists():
+        df = pd.read_csv(CSV_PATH)
+    else:
+        raise FileNotFoundError(
+            f"Brak źródła danych. Ustaw DB_PATH lub CSV_PATH.\n"
+            f"  DB:  {DB_PATH.absolute()}\n"
+            f"  CSV: {CSV_PATH.absolute()}"
+        )
+    required = {"name", "iv_a", "iv_d", "iv_s"}
+    missing = required - set(df.columns)
+    if missing:
+        raise ValueError(f"Brak kolumn: {missing}. Dostępne: {list(df.columns)}")
+    return df
+
+
+# ── Główna logika ─────────────────────────────────────────────────────────────
+
+def enrich_with_pvp_ranks(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Dodaje kolumny pvp_gl_rank, pvp_gl_pct, pvp_ul_rank, pvp_ul_pct do DataFrame.
+    Optymalizacja: rank table budowana raz per (gatunek, liga), cached.
+    """
+    bs_raw = load_base_stats()
+
+    # Raport pokrycia
+    unresolved = [n for n in df["name"].unique() if resolve_base_stats(n, bs_raw) is None]
+    if unresolved:
+        print(f"[WARN] Brak base stats dla {len(unresolved)} gatunków: {unresolved[:8]}{'…' if len(unresolved)>8 else ''}")
+
+    # apply po wierszach — cache rank table sprawia, że to O(n) nie O(n×4096)
+    def _row_ranks(row) -> pd.Series:
+        bs = resolve_base_stats(row["name"], bs_raw)
+        if not bs:
+            return pd.Series({"pvp_gl_rank": 0, "pvp_gl_pct": 0.0,
+                               "pvp_ul_rank": 0, "pvp_ul_pct": 0.0})
+        ba, bd, bst = bs
+        ia, id_, is_ = int(row["iv_a"]), int(row["iv_d"]), int(row["iv_s"])
+        gl_rank, _, gl_pct = pvp_rank(ba, bd, bst, ia, id_, is_, GL_CAP)
+        ul_rank, _, ul_pct = pvp_rank(ba, bd, bst, ia, id_, is_, UL_CAP)
+        return pd.Series({"pvp_gl_rank": gl_rank, "pvp_gl_pct": gl_pct,
+                           "pvp_ul_rank": ul_rank, "pvp_ul_pct": ul_pct})
+
+    ranks = df.apply(_row_ranks, axis=1)
+    return pd.concat([df, ranks], axis=1)
+
+
+def save_results(df: pd.DataFrame) -> None:
+    """Zapisuje wyniki z powrotem do SQLite i do CSV."""
+    if DB_PATH.exists():
+        con = sqlite3.connect(DB_PATH)
+        df.to_sql("pokemons_ranked", con, if_exists="replace", index=False)
+        con.close()
+        print(f"[OK] Zapisano do {DB_PATH} (tabela: pokemons_ranked)")
+
+    out_csv = Path("pokemons_ranked.csv")
+    df.to_csv(out_csv, index=False)
+    print(f"[OK] Zapisano do {out_csv}")
+
+
+# ── Entry point ───────────────────────────────────────────────────────────────
+
+if __name__ == "__main__":
+    import time
+
+    print("Wczytywanie danych…")
+    df = load_pokemons()
+    print(f"  {len(df)} pokemonów, {df['name'].nunique()} gatunków")
+
+    print("Obliczanie ranków PvP…")
+    t0     = time.perf_counter()
+    result = enrich_with_pvp_ranks(df)
+    elapsed = time.perf_counter() - t0
+
+    print(f"  Gotowe w {elapsed:.2f}s")
+    print(f"  Rank tables w cache: {len(_rank_cache)}")
+
+    cols = ["name", "iv_a", "iv_d", "iv_s",
+            "pvp_gl_rank", "pvp_gl_pct",
+            "pvp_ul_rank", "pvp_ul_pct"]
+    avail = [c for c in cols if c in result.columns]
+    print("\nPodgląd wyników:")
+    print(result[avail].head(20).to_string(index=False))
+
+    save_results(result)

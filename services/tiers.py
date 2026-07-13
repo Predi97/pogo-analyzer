@@ -76,51 +76,63 @@ def _tier_refresh_needed() -> bool:
 
 
 def scrape_pokebase() -> dict[str, dict[str, str]]:
+    import re
     tiers: dict[str, dict[str, str]] = {}
-    try:
-        resp = requests.get(config.POKEBASE_URL, headers=config.SCRAPE_HEADERS, timeout=15)
-        resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "html.parser")
-
-        next_tag = soup.find("script", id="__NEXT_DATA__")
-        if next_tag and next_tag.string:
-            try:
-                page_data = json.loads(next_tag.string)
-                props = (page_data.get("props") or {}).get("pageProps") or {}
-                for key in ("tierList", "tiers", "data", "pokemonList"):
-                    tier_data = props.get(key)
-                    if isinstance(tier_data, list):
-                        for entry in tier_data:
-                            name = entry.get("name") or entry.get("pokemon")
-                            tier = entry.get("tier") or entry.get("rank")
-                            cat  = entry.get("category", "raid")
-                            if name and tier:
-                                tiers.setdefault(name, {})[cat] = tier.upper()
-                        break
-            except (json.JSONDecodeError, AttributeError):
-                pass
-
-        if not tiers:
-            for tier_label in ("S", "A", "B", "C", "D"):
-                for sel in (
-                    f'[data-tier="{tier_label}"]',
-                    f'.tier-{tier_label}',
-                    f'[class*="tier-{tier_label.lower()}"]',
-                ):
-                    for div in soup.select(sel):
-                        for el in div.select("span, p, .name, [class*='name']"):
-                            name = el.get_text(strip=True)
-                            if 2 < len(name) < 40:
-                                tiers.setdefault(name, {})["raid"] = tier_label
-
+    urls = {
+        "pvp_great": "https://pokebase.app/pokemon-go/tier-lists/great-league-tier-list",
+        "pvp_ultra": "https://pokebase.app/pokemon-go/tier-lists/ultra-league-tier-list",
+        "pvp_master": "https://pokebase.app/pokemon-go/tier-lists/master-league-tier-list",
+        "raid": "https://pokebase.app/pokemon-go/tier-lists/attackers-tier-list",
+    }
+    
+    scrape_errors = []
+    for category, url in urls.items():
+        try:
+            resp = requests.get(url, headers=config.SCRAPE_HEADERS, timeout=15)
+            resp.raise_for_status()
+            soup = BeautifulSoup(resp.text, "html.parser")
+            
+            blocks = soup.find_all("div", class_=lambda c: c and "pt-6" in c)
+            for block in blocks:
+                span = block.find("span", class_=lambda c: c and "font-logo" in c) or block.find("span")
+                if not span:
+                    continue
+                tier_name = span.get_text(strip=True)
+                match = re.match(r"^([SABCD][+-]?)\s*Tier$", tier_name, re.IGNORECASE)
+                if not match:
+                    match = re.match(r"^([SABCD][+-]?)", tier_name, re.IGNORECASE)
+                if not match:
+                    continue
+                tier_label = match.group(1).upper()
+                
+                grid = block.find("div", class_=lambda c: c and "grid" in c)
+                if not grid:
+                    continue
+                
+                links = grid.find_all("a", href=True)
+                for link in links:
+                    name_span = link.find("span", class_=lambda c: c and "font-medium" in c)
+                    name = name_span.get_text(strip=True) if name_span else link.get_text(strip=True)
+                    if name:
+                        tiers.setdefault(name, {})[category] = tier_label
+        except Exception as exc:
+            log.warning("Failed to scrape category %s: %s", category, exc)
+            scrape_errors.append(f"{category}: {exc}")
+            
+    if scrape_errors:
+        try:
+            with get_db() as db:
+                db.execute(
+                    "INSERT OR REPLACE INTO scrape_log (source, last_err) VALUES ('pokebase', ?)",
+                    ("; ".join(scrape_errors),),
+                )
+        except Exception as db_exc:
+            log.warning("Could not write scrape error to DB: %s", db_exc)
+            
+    if tiers:
         log.info("Pokebase scrape: %d Pokémon with tier data", len(tiers))
-    except Exception as exc:
-        log.warning("Pokebase scrape failed (%s) — using fallback data", exc)
-        with get_db() as db:
-            db.execute(
-                "INSERT OR REPLACE INTO scrape_log (source, last_err) VALUES ('pokebase', ?)",
-                (str(exc),),
-            )
+    else:
+        log.warning("Pokebase scrape: no data retrieved.")
 
     merged = {k: dict(v) for k, v in _FALLBACK_TIERS.items()}
     for name, cats in tiers.items():

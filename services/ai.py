@@ -246,7 +246,7 @@ def _anthropic(prompt: str, system: str) -> str:
             "Content-Type": "application/json",
         },
         json={
-            "model": "claude-sonnet-4-6",
+            "model": "claude-3-5-sonnet-latest",
             "max_tokens": 2000,
             "system": system or "Jesteś ekspertem Pokemon GO. Odpowiadaj po polsku.",
             "messages": [{"role": "user", "content": prompt}],

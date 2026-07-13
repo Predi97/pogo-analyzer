@@ -21,8 +21,10 @@ _CPM: list[tuple[float, float]] = [
     (43.5,.807800014),(44,.81030001),(44.5,.812799986),(45,.81530001),(45.5,.817800014),
     (46,.82030001),(46.5,.822799985),(47,.82530001),(47.5,.827800015),(48,.83030001),
     (48.5,.832799985),(49,.83530001),(49.5,.837800015),(50,.84029999),
+    (50.5,.84280373),(51,.84530001),
 ]
 
+_CPM_TABLE: dict[float, float] = {lvl: c for lvl, c in _CPM}
 
 # Sorted CPM values for fast bisect in rank calculations
 _CPM_VALUES: list[float] = sorted(c for _, c in _CPM)
@@ -31,4 +33,8 @@ def cpm_to_level(cpm: float) -> float:
     if not cpm:
         return 1.0
     return min(_CPM, key=lambda x: abs(x[1] - cpm))[0]
+
+def level_to_cpm(lvl: float) -> float:
+    """Return exact CPM value for a given level (1.0 to 51.0)."""
+    return _CPM_TABLE.get(lvl, _CPM_TABLE[51.0] if lvl > 51.0 else _CPM_TABLE[1.0])
 

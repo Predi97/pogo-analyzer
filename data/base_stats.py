@@ -102,18 +102,5 @@ _EVOLVE_CHAIN: dict[int, int] = {
     704:706, 705:706,      # Goomy/Sliggoo → Goodra
 }
 
-_CPM_TABLE: list[tuple[float,float]] = [
-    (1,.094),(5,.29024988),(10,.42250001),(15,.51739395),(20,.59740001),
-    (25,.667934),(30,.7317),(35,.76156384),(40,.79030001),(50,.84029999),
-]
+from data.cpm import level_to_cpm as _cpm
 
-
-def _cpm(lvl: float) -> float:
-    """Interpolated CPM for a given level (uses compact table)."""
-    for i, (l, c) in enumerate(_CPM_TABLE):
-        if lvl <= l:
-            if i == 0:
-                return c
-            l0, c0 = _CPM_TABLE[i - 1]
-            return c0 + (c - c0) * (lvl - l0) / (l - l0)
-    return _CPM_TABLE[-1][1]

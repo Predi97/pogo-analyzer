@@ -830,11 +830,11 @@ tr:hover td{background:rgba(163,240,80,.025)}
 
     <!-- ── TAB: Ustawienia ────────────────────────────────────── -->
     <div class="panel" id="panel-settings">
-      <div class="panel-title">⚙️ Ustawienia</div>
+      <div class="panel-title" id="settings-panel-title">⚙️ Ustawienia</div>
       <div class="card">
-        <div class="card-title">Konfiguracja AI</div>
+        <div class="card-title" id="settings-ai-config-title">Konfiguracja AI</div>
         <div class="settings-section">
-          <h3>Provider</h3>
+          <h3 id="settings-provider-h3">Provider</h3>
           <div class="form-row">
             <label>AI Provider</label>
             <select id="cfg-provider">
@@ -846,7 +846,7 @@ tr:hover td{background:rgba(163,240,80,.025)}
           </div>
         </div>
         <div class="settings-section">
-          <h3>Klucze API</h3>
+          <h3 id="settings-apikeys-h3">Klucze API</h3>
           <div class="form-row"><label>Gemini API Key</label><input type="password" id="cfg-gemini" placeholder="AIza…"></div>
           <div class="form-row"><label>OpenAI API Key</label><input type="password" id="cfg-openai" placeholder="sk-…"></div>
           <div class="form-row"><label>Anthropic API Key</label><input type="password" id="cfg-anthropic" placeholder="sk-ant-…"></div>
@@ -858,14 +858,14 @@ tr:hover td{background:rgba(163,240,80,.025)}
       </div>
 
       <div class="card">
-        <div class="card-title">📦 Cache AI (SQLite)</div>
-        <p style="font-size:12px;color:var(--muted);margin-bottom:10px">
+        <div class="card-title" id="settings-cache-title">📦 Cache AI (SQLite)</div>
+        <p id="settings-cache-desc" style="font-size:12px;color:var(--muted);margin-bottom:10px">
           Odpowiedzi AI zapisywane wg hasha statystyk — ta sama kombinacja IV/CP nie kosztuje tokenu drugi raz.
         </p>
         <div class="cache-bar" id="cache-stats">
-          <span class="cache-stat">Łącznie: <b id="cs-total">—</b></span>
-          <span class="cache-stat">Dziś: <b id="cs-today">—</b></span>
-          <span class="cache-stat">Szac. zaoszczędzone: <b id="cs-saved">—</b> USD</span>
+          <span class="cache-stat" id="cs-total-lbl">Łącznie: <b id="cs-total">—</b></span>
+          <span class="cache-stat" id="cs-today-lbl">Dziś: <b id="cs-today">—</b></span>
+          <span class="cache-stat" id="cs-saved-lbl">Szac. zaoszczędzone: <b id="cs-saved">—</b> USD</span>
         </div>
       </div>
     </div>
@@ -1979,6 +1979,15 @@ const translations = {
     btnAnalyzePvp: "🤖 Analiza AI — składy PvP",
     btnSaveCfg: "Zapisz ustawienia",
     cfgSaved: "Zapisano!",
+    settingsTitle: "⚙️ Ustawienia",
+    settingsAiCfgTitle: "Konfiguracja AI",
+    settingsProviderH3: "Provider",
+    settingsApiKeysH3: "Klucze API",
+    settingsCacheTitle: "📦 Cache AI (SQLite)",
+    settingsCacheDesc: "Odpowiedzi AI zapisywane wg hasha statystyk — ta sama kombinacja IV/CP nie kosztuje tokenu drugi raz.",
+    settingsCsTotal: "Łącznie:",
+    settingsCsToday: "Dziś:",
+    settingsCsSaved: "Szac. zaoszczędzone:",
     lblRegexPogo: "🔍 Regex PoGO",
     lblRoptSafe: "bez shiny/shadow/lucky",
     lblRoptIv: "bez 3★+",
@@ -2007,6 +2016,15 @@ const translations = {
     btnAnalyzePvp: "🤖 AI Analysis — PvP Teams",
     btnSaveCfg: "Save settings",
     cfgSaved: "Saved!",
+    settingsTitle: "⚙️ Settings",
+    settingsAiCfgTitle: "AI Configuration",
+    settingsProviderH3: "Provider",
+    settingsApiKeysH3: "API Keys",
+    settingsCacheTitle: "📦 AI Cache (SQLite)",
+    settingsCacheDesc: "AI responses cached by stats hash — the same IV/CP combination never costs a second API call.",
+    settingsCsTotal: "Total:",
+    settingsCsToday: "Today:",
+    settingsCsSaved: "Est. savings:",
     lblRegexPogo: "🔍 Regex PoGO",
     lblRoptSafe: "no shiny/shadow/lucky",
     lblRoptIv: "no 3★+",
@@ -2123,6 +2141,12 @@ function applyLanguage() {
     "btn-analyze-pvp": t.btnAnalyzePvp,
     "btn-save-cfg": t.btnSaveCfg,
     "cfg-saved": t.cfgSaved,
+    "settings-panel-title": t.settingsTitle,
+    "settings-ai-config-title": t.settingsAiCfgTitle,
+    "settings-provider-h3": t.settingsProviderH3,
+    "settings-apikeys-h3": t.settingsApiKeysH3,
+    "settings-cache-title": t.settingsCacheTitle,
+    "settings-cache-desc": t.settingsCacheDesc,
     "lbl-regex-pogo": t.lblRegexPogo,
     "lbl-ropt-safe": t.lblRoptSafe,
     "lbl-ropt-iv": t.lblRoptIv,
@@ -2140,6 +2164,14 @@ function applyLanguage() {
     const el = $(id);
     if (el && text) el.textContent = text;
   }
+
+  // Cache stats labels contain a <b> child — update only the text node, not the number
+  const csTotalLbl = $("cs-total-lbl");
+  if (csTotalLbl) { const b = csTotalLbl.querySelector("b"); csTotalLbl.childNodes[0].nodeValue = t.settingsCsTotal + " "; if (b) csTotalLbl.appendChild(b); }
+  const csTodayLbl = $("cs-today-lbl");
+  if (csTodayLbl) { const b = csTodayLbl.querySelector("b"); csTodayLbl.childNodes[0].nodeValue = t.settingsCsToday + " "; if (b) csTodayLbl.appendChild(b); }
+  const csSavedLbl = $("cs-saved-lbl");
+  if (csSavedLbl) { const b = csSavedLbl.querySelector("b"); csSavedLbl.childNodes[0].nodeValue = t.settingsCsSaved + " "; if (b) csSavedLbl.appendChild(b); }
 
   const cpVal = $("ropt-cp-val");
   if (cpVal) cpVal.placeholder = t.roptCpValPlaceholder;

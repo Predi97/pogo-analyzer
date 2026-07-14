@@ -60,6 +60,22 @@ Pasek filtrów nad tabelą Pokémonów generuje zapytania w pełni zgodne z wysz
 
 ---
 
+## 📱 Źródło Danych — PGSharp
+
+Aplikacja jest zaprojektowana do pracy wyłącznie z plikiem eksportu **`PGSStats.json`** generowanym przez aplikację [**PGSharp**](https://www.pgsharp.com/) — zmodyfikowanego klienta Pokémon GO.
+
+### Jak uzyskać plik `PGSStats.json`?
+
+1. Otwórz **PGSharp** na swoim urządzeniu.
+2. Przejdź do **Menu → PGSStats** (lub ikony eksportu / udostępniania).
+3. Kliknij **Eksportuj** i prześlij plik `PGSStats.json` na swój komputer (np. przez Google Drive, Discorda lub kabel USB).
+4. Wgraj plik w dashboardzie **PokéGO Analyzer**, aby odblokować wszystkie funkcje.
+
+> [!NOTE]
+> `PGSStats.json` zawiera pełny box Pokémonów, ekwipunek przedmiotów, profil trenera i statystyki walk — wszystko w jednym pliku. Analizator przetwarza dane w całości **lokalnie** — żadne dane nie są wysyłane na zewnętrzny serwer.
+
+---
+
 ## 🛠️ Szybki Start
 
 ### Wymagania

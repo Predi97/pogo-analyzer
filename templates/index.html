@@ -546,42 +546,42 @@ tr:hover td{background:rgba(163,240,80,.025)}
         <span class="count-label" id="poke-count"></span>
       </div>
       <div class="regex-bar">
-        <span class="rlabel">🔍 Regex PoGO</span>
+        <span class="rlabel" id="lbl-regex-pogo">🔍 Regex PoGO</span>
         <label>
           <input type="checkbox" id="ropt-safe" checked>
-          <span title="Dodaje &amp;!shiny&amp;!shadow&amp;!lucky&amp;!favorite">bez shiny/shadow/lucky</span>
+          <span id="lbl-ropt-safe" title="Dodaje &amp;!shiny&amp;!shadow&amp;!lucky&amp;!favorite">bez shiny/shadow/lucky</span>
         </label>
         <label>
           <input type="checkbox" id="ropt-iv">
-          <span title="Wyklucza IV≥82%">bez 3★+</span>
+          <span id="lbl-ropt-iv" title="Wyklucza IV≥82%">bez 3★+</span>
         </label>
         <label>
           <input type="checkbox" id="ropt-legendary">
-          <span>bez legendary</span>
+          <span id="lbl-ropt-legendary">bez legendary</span>
         </label>
         <label>
           <input type="checkbox" id="ropt-cp">
-          <span>max CP:</span>
+          <span id="lbl-ropt-cp-lbl">max CP:</span>
         </label>
         <input type="number" id="ropt-cp-val" placeholder="np. 500" min="10" max="9999" style="width:70px">
         <label title="Chroni pokemony z CP powyżej tej wartości przed wylądowaniem w query (nie są transferem)">
-          <span style="white-space:nowrap">chroń CP≥</span>
+          <span id="lbl-ropt-cp-min-lbl" style="white-space:nowrap">chroń CP≥</span>
         </label>
         <input type="number" id="ropt-cp-min" placeholder="1200" min="10" max="9999" value="1200" style="width:65px">
         <label title="Chroni pokemony z dobrym rankiem PvP GL (rank ≤500) przed wylądowaniem w query">
           <input type="checkbox" id="ropt-pvp" checked>
-          <span>chroń PvP</span>
+          <span id="lbl-ropt-pvp">chroń PvP</span>
         </label>
         <label title="Chroni pokemony z poziomem ≥35">
           <input type="checkbox" id="ropt-lvl" checked>
-          <span>chroń lvl≥35</span>
+          <span id="lbl-ropt-lvl">chroń lvl≥35</span>
         </label>
         <button class="btn btn-outline btn-sm" id="btn-copy-regex" style="margin-left:auto">📋 Kopiuj regex</button>
         <span id="regex-hint" style="color:var(--muted);font-size:10px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)">
-          <span style="font-weight:700;font-family:var(--fh);font-size:10px;text-transform:uppercase;letter-spacing:.8px">Tagi:</span>
+          <span id="lbl-tags-lbl" style="font-weight:700;font-family:var(--fh);font-size:10px;text-transform:uppercase;letter-spacing:.8px">Tagi:</span>
           <span class="badge badge-shiny" title="Shiny pokemon">✨ Shiny</span>
           <span class="badge badge-shadow" title="Shadow pokemon — +20% ataku">Shadow</span>
           <span class="badge badge-hundo" title="100% IV — idealne statystyki">💯 Hundo</span>
@@ -589,8 +589,8 @@ tr:hover td{background:rgba(163,240,80,.025)}
           <span class="badge badge-event" title="Pokemon pojawia się w aktywnym lub nadchodzącym evencie">📅 Event</span>
         </div>
         <button class="btn btn-outline btn-sm" id="btn-export-csv">📥 Export CSV</button>
-        <a class="btn btn-outline btn-sm" href="/api/export/raw-csv" download="pogo_raw_export.csv" title="Pełny eksport 1:1 z PGSStats.json — wszystkie 80 pól + nazwa gatunku">📦 Raw JSON→CSV</a>
-        <a class="btn btn-outline btn-sm" href="/api/export/inventory-csv" download="pogo_inventory.csv" title="Stardust, PokéCoiny, Rare Candy + pełna lista ekwipunku">💰 Ekwipunek CSV</a>
+        <a class="btn btn-outline btn-sm" id="btn-raw-csv" href="/api/export/raw-csv" download="pogo_raw_export.csv" title="Pełny eksport 1:1 z PGSStats.json — wszystkie 80 pól + nazwa gatunku">📦 Raw JSON→CSV</a>
+        <a class="btn btn-outline btn-sm" id="btn-inventory-csv" href="/api/export/inventory-csv" download="pogo_inventory.csv" title="Stardust, PokéCoiny, Rare Candy + pełna lista ekwipunku">💰 Ekwipunek CSV</a>
       </div>
       <div class="tbl-wrap">
         <table>
@@ -1854,7 +1854,21 @@ const translations = {
     btnAnalyzeItems: "🤖 Analiza AI — co i na kogo",
     btnAnalyzePvp: "🤖 Analiza AI — składy PvP",
     btnSaveCfg: "Zapisz ustawienia",
-    cfgSaved: "Zapisano!"
+    cfgSaved: "Zapisano!",
+    lblRegexPogo: "🔍 Regex PoGO",
+    lblRoptSafe: "bez shiny/shadow/lucky",
+    lblRoptIv: "bez 3★+",
+    lblRoptLegendary: "bez legendary",
+    lblRoptCpLbl: "max CP:",
+    lblRoptCpMinLbl: "chroń CP≥",
+    lblRoptPvp: "chroń PvP",
+    lblRoptLvl: "chroń lvl≥35",
+    btnCopyRegex: "📋 Kopiuj regex",
+    lblTagsLbl: "Tagi:",
+    btnExportCsv: "📥 Export CSV",
+    btnRawCsv: "📦 Raw JSON→CSV",
+    btnInventoryCsv: "💰 Ekwipunek CSV",
+    roptCpValPlaceholder: "np. 500"
   },
   en: {
     headerSub: "Upload PGSStats.json to begin",
@@ -1868,7 +1882,21 @@ const translations = {
     btnAnalyzeItems: "🤖 AI Analysis — what to use on whom",
     btnAnalyzePvp: "🤖 AI Analysis — PvP Teams",
     btnSaveCfg: "Save settings",
-    cfgSaved: "Saved!"
+    cfgSaved: "Saved!",
+    lblRegexPogo: "🔍 Regex PoGO",
+    lblRoptSafe: "no shiny/shadow/lucky",
+    lblRoptIv: "no 3★+",
+    lblRoptLegendary: "no legendary",
+    lblRoptCpLbl: "max CP:",
+    lblRoptCpMinLbl: "protect CP≥",
+    lblRoptPvp: "protect PvP",
+    lblRoptLvl: "protect lvl≥35",
+    btnCopyRegex: "📋 Copy regex",
+    lblTagsLbl: "Tags:",
+    btnExportCsv: "📥 Export CSV",
+    btnRawCsv: "📦 Raw JSON→CSV",
+    btnInventoryCsv: "💰 Inventory CSV",
+    roptCpValPlaceholder: "e.g. 500"
   }
 };
 
@@ -1893,22 +1921,22 @@ const thMap = {
 
 const optionMap = {
   pl: {
-    "Wszystkie": "Wszystkie", "100% IV (Hundo)": "100% IV (Hundo)", "Błyszczące (Shiny)": "Błyszczące (Shiny)",
-    "Cieniste (Shadow)": "Cieniste (Shadow)", "Szczęśliwe (Lucky)": "Szczęśliwe (Lucky)", "Tylko Tier S": "Tylko Tier S",
-    "Tylko Tier A": "Tylko Tier A", "Do transferu (Trash)": "Do transferu (Trash)", "Złapane 2016-2018": "Złapane 2016-2018",
-    "Złapane 2019-2022": "Złapane 2019-2022", "PvP GL Top 250": "PvP GL Top 250", "Sortuj po CP": "Sortuj po CP",
-    "Sortuj po IV%": "Sortuj po IV%", "Sortuj po Poziomie": "Sortuj po Poziomie", "Sortuj po Nazwie": "Sortuj po Nazwie",
-    "Wszystkie Pokemony": "Wszystkie Pokemony", "Wartościowe (S/A/B)": "Wartościowe (S/A/B)", "🟢 Aktywne": "🟢 Aktywne",
-    "🔵 Nadchodzące": "🔵 Nadchodzące", "⬜ Zakończone": "⬜ Zakończone"
+    "Wszystkie": "Wszystkie", "✨ Shiny": "✨ Shiny", "👻 Shadow": "👻 Shadow", "🍀 Lucky": "🍀 Lucky",
+    "Tier S (meta)": "Tier S (meta)", "Tier A (meta)": "Tier A (meta)", "🗑️ Kandydaci do transferu": "🗑️ Kandydaci do transferu",
+    "📅 2016–2018 (lucky)": "📅 2016–2018 (lucky)", "📅 2019–2022 (lucky)": "📅 2019–2022 (lucky)",
+    "🏆 PvP Gemy GL (rank ≤250)": "🏆 PvP Gemy GL (rank ≤250)", "CP ↓": "CP ↓", "IV% ↓": "IV% ↓",
+    "Level ↓": "Level ↓", "Nazwa A→Z": "Nazwa A→Z", "Wszystkie Pokemony": "Wszystkie Pokemony",
+    "Wartościowe (S/A/B)": "Wartościowe (S/A/B)", "🟢 Aktywne": "🟢 Aktywne", "🔵 Nadchodzące": "🔵 Nadchodzące",
+    "⬜ Zakończone": "⬜ Zakończone"
   },
   en: {
-    "Wszystkie": "All", "100% IV (Hundo)": "100% IV (Hundo)", "Błyszczące (Shiny)": "Shiny",
-    "Cieniste (Shadow)": "Shadow", "Szczęśliwe (Lucky)": "Lucky", "Tylko Tier S": "Only Tier S",
-    "Tylko Tier A": "Only Tier A", "Do transferu (Trash)": "To transfer (Trash)", "Złapane 2016-2018": "Caught 2016-2018",
-    "Złapane 2019-2022": "Caught 2019-2022", "PvP GL Top 250": "PvP GL Top 250", "Sortuj po CP": "Sort by CP",
-    "Sortuj po IV%": "Sort by IV%", "Sortuj po Poziomie": "Sort by Level", "Sortuj po Nazwie": "Sort by Name",
-    "Wszystkie Pokemony": "All Pokémon", "Wartościowe (S/A/B)": "Valuable (S/A/B)", "🟢 Aktywne": "🟢 Active",
-    "🔵 Nadchodzące": "🔵 Upcoming", "⬜ Zakończone": "⬜ Ended"
+    "Wszystkie": "All", "✨ Shiny": "✨ Shiny", "👻 Shadow": "👻 Shadow", "🍀 Lucky": "🍀 Lucky",
+    "Tier S (meta)": "Tier S (meta)", "Tier A (meta)": "Tier A (meta)", "🗑️ Kandydaci do transferu": "🗑️ Transfer Candidates (Trash)",
+    "📅 2016–2018 (lucky)": "📅 2016–2018 (lucky)", "📅 2019–2022 (lucky)": "📅 2019–2022 (lucky)",
+    "🏆 PvP Gemy GL (rank ≤250)": "🏆 PvP Gems GL (rank ≤250)", "CP ↓": "CP ↓", "IV% ↓": "IV% ↓",
+    "Level ↓": "Level ↓", "Nazwa A→Z": "Name A→Z", "Wszystkie Pokemony": "All Pokémon",
+    "Wartościowe (S/A/B)": "Valuable (S/A/B)", "🟢 Aktywne": "🟢 Active", "🔵 Nadchodzące": "🔵 Upcoming",
+    "⬜ Zakończone": "⬜ Ended"
   }
 };
 
@@ -1970,12 +1998,47 @@ function applyLanguage() {
     "btn-analyze-items": t.btnAnalyzeItems,
     "btn-analyze-pvp": t.btnAnalyzePvp,
     "btn-save-cfg": t.btnSaveCfg,
-    "cfg-saved": t.cfgSaved
+    "cfg-saved": t.cfgSaved,
+    "lbl-regex-pogo": t.lblRegexPogo,
+    "lbl-ropt-safe": t.lblRoptSafe,
+    "lbl-ropt-iv": t.lblRoptIv,
+    "lbl-ropt-legendary": t.lblRoptLegendary,
+    "lbl-ropt-cp-lbl": t.lblRoptCpLbl,
+    "lbl-ropt-cp-min-lbl": t.lblRoptCpMinLbl,
+    "lbl-ropt-pvp": t.lblRoptPvp,
+    "lbl-ropt-lvl": t.lblRoptLvl,
+    "btn-copy-regex": t.btnCopyRegex,
+    "lbl-tags-lbl": t.lblTagsLbl,
+    "btn-raw-csv": t.btnRawCsv,
+    "btn-inventory-csv": t.btnInventoryCsv
   };
   for (const [id, text] of Object.entries(ids)) {
     const el = $(id);
     if (el && text) el.textContent = text;
   }
+
+  const cpVal = $("ropt-cp-val");
+  if (cpVal) cpVal.placeholder = t.roptCpValPlaceholder;
+
+  const safeSpan = $("lbl-ropt-safe");
+  if (safeSpan) safeSpan.title = _lang === "pl" 
+    ? "Dodaje &!shiny&!shadow&!lucky&!favorite" 
+    : "Adds &!shiny&!shadow&!lucky&!favorite";
+    
+  const ivSpan = $("lbl-ropt-iv");
+  if (ivSpan) ivSpan.title = _lang === "pl"
+    ? "Wyklucza IV≥82%"
+    : "Excludes IV≥82%";
+
+  const rawCsv = $("btn-raw-csv");
+  if (rawCsv) rawCsv.title = _lang === "pl"
+    ? "Pełny eksport 1:1 z PGSStats.json — wszystkie 80 pól + nazwa gatunku"
+    : "Full 1:1 export from PGSStats.json — all 80 fields + species name";
+    
+  const invCsv = $("btn-inventory-csv");
+  if (invCsv) invCsv.title = _lang === "pl"
+    ? "Stardust, PokéCoiny, Rare Candy + pełna lista ekwipunku"
+    : "Stardust, PokéCoins, Rare Candy + complete inventory listing";
   
   const uploadSub = document.querySelector(".upload-sub");
   if (uploadSub) uploadSub.innerHTML = _lang === "pl" 

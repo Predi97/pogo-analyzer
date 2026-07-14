@@ -457,7 +457,10 @@ tr:hover td{background:rgba(163,240,80,.025)}
   <div class="sidebar-header">
     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 8px;">
       <div class="logo">⚡ PokéGO <span>Analyzer</span></div>
-      <button id="btn-lang" class="btn btn-outline btn-xs" style="padding: 2px 6px; font-size: 11px; margin-top: -4px;">🇵🇱 PL</button>
+      <div class="lang-selector" style="display: flex; gap: 8px; align-items: center; margin-top: -4px;">
+        <span id="lang-pl" title="Polski" style="cursor: pointer; font-size: 18px; transition: all 0.2s ease;">🇵🇱</span>
+        <span id="lang-en" title="English" style="cursor: pointer; font-size: 18px; transition: all 0.2s ease;">🇺🇸</span>
+      </div>
     </div>
     <p id="header-sub">Wgraj PGSStats.json żeby zacząć</p>
     <div id="upload-small">
@@ -1950,7 +1953,17 @@ const devCards = {
 
 function applyLanguage() {
   const t = translations[_lang];
-  $("btn-lang").textContent = _lang === "pl" ? "🇵🇱 PL" : "🇬🇧 EN";
+  if (_lang === "pl") {
+    $("lang-pl").style.opacity = "1";
+    $("lang-pl").style.filter = "none";
+    $("lang-en").style.opacity = "0.35";
+    $("lang-en").style.filter = "grayscale(90%)";
+  } else {
+    $("lang-pl").style.opacity = "0.35";
+    $("lang-pl").style.filter = "grayscale(90%)";
+    $("lang-en").style.opacity = "1";
+    $("lang-en").style.filter = "none";
+  }
 
   const ids = {
     "header-sub": t.headerSub,
@@ -2104,10 +2117,20 @@ function applyLanguage() {
   }
 }
 
-$("btn-lang").addEventListener("click", () => {
-  _lang = _lang === "pl" ? "en" : "pl";
-  localStorage.setItem("pogo_lang", _lang);
-  applyLanguage();
+$("lang-pl").addEventListener("click", () => {
+  if (_lang !== "pl") {
+    _lang = "pl";
+    localStorage.setItem("pogo_lang", "pl");
+    applyLanguage();
+  }
+});
+
+$("lang-en").addEventListener("click", () => {
+  if (_lang !== "en") {
+    _lang = "en";
+    localStorage.setItem("pogo_lang", "en");
+    applyLanguage();
+  }
 });
 
 applyLanguage();

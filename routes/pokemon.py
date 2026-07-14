@@ -28,9 +28,11 @@ def upload():
     try:
         raw    = json.load(f)
         parsed = parse_pgo_json(raw)
-        _state["pokemons"] = parsed["pokemons"]
-        _state["items"]    = parsed["items"]
-        _state["loaded"]   = True
+        _state["pokemons"]  = parsed["pokemons"]
+        _state["items"]     = parsed["items"]
+        _state["player"]    = parsed["player"]
+        _state["pvp_stats"] = parsed["pvp_stats"]
+        _state["loaded"]    = True
         n = len(parsed["pokemons"])
         log.info("Uploaded: %d pokemons, %d item types", n, len(parsed["items"]))
         save_upload(raw)
@@ -44,6 +46,8 @@ def upload():
                 "luckies":    sum(1 for p in parsed["pokemons"] if p["lucky"]),
                 "item_types": len(parsed["items"]),
             },
+            "player": parsed["player"],
+            "pvp_stats": parsed["pvp_stats"]
         })
     except Exception as exc:
         log.exception("Upload parse error")
@@ -244,6 +248,8 @@ def api_status():
             "hundos":     sum(1 for p in pokemons if p["hundo"]),
             "luckies":    sum(1 for p in pokemons if p["lucky"]),
             "item_types": len(_state["items"]),
-            "stardust":   stardust,
+            "stardust":   _state["player"].get("stardust", 0) if _state.get("player") else stardust,
         },
+        "player": _state.get("player"),
+        "pvp_stats": _state.get("pvp_stats")
     })

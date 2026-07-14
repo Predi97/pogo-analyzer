@@ -7,7 +7,7 @@ from scoring import _tier_for
 from services.ai import (
     _SYSTEM_EXPERT, _SYSTEM_TACTICIAN,
     build_event_prompt, build_items_prompt, build_pokemon_prompt,
-    call_ai,
+    build_pvp_teams_prompt, call_ai,
 )
 from services.tiers import get_tier_list
 from state import _state
@@ -82,15 +82,38 @@ def api_event_strategy():
     if cached:
         return jsonify({"response": cached, "cached": True})
 
-    spawn_names = {
-        (s.get("name") or s).lower()
-        for s in event.get("spawns", []) + event.get("shinies", [])
-        if s
-    }
-    relevant = [
+    featured_pokes = event.get("featured_pokemons", [])
+    featured_names = {p["name"].lower() for p in featured_pokes}
+
+    def clean_name(n):
+        n = n.replace("Mega ", "").replace("Shadow ", "").replace("Alolan ", "").replace("Galarian ", "").replace("Hisuian ", "")
+        return n.split(" ")[0].strip().lower()
+
+    clean_featured = {clean_name(name) for name in featured_names}
+
+    matching_inventory = [
         p for p in _state["pokemons"]
-        if any(sn in p["name"].lower() for sn in spawn_names if sn)
-    ][:12]
+        if clean_name(p["name"]) in clean_featured
+    ]
+
+    top_combat = sorted(
+        [p for p in _state["pokemons"] if p.get("cp", 0) > 1500 or p.get("iv_pct", 0) >= 90],
+        key=lambda p: (p.get("cp", 0), p.get("iv_pct", 0)),
+        reverse=True
+    )[:20]
+
+    combined = []
+    seen = set()
+    for p in matching_inventory:
+        if p["pid"] not in seen:
+            combined.append(p)
+            seen.add(p["pid"])
+    for p in top_combat:
+        if p["pid"] not in seen:
+            combined.append(p)
+            seen.add(p["pid"])
+
+    relevant = combined[:30]
 
     try:
         resp = call_ai(
@@ -100,4 +123,61 @@ def api_event_strategy():
         set_cache(h, event["name"], resp)
         return jsonify({"response": resp, "cached": False})
     except Exception as exc:
+        return jsonify({"error": f"Błąd AI: {exc}"}), 500
+
+
+@bp.route("/api/analyze-pvp-teams", methods=["POST"])
+def api_analyze_pvp_teams():
+    body = request.json or {}
+    league = body.get("league", "GL")
+    
+    limits = {"GL": 1500, "UL": 2500, "ML": 100000}
+    keys = {"GL": "pvp_great", "UL": "pvp_ultra", "ML": "pvp_master"}
+    cp_limit = limits.get(league, 1500)
+    lkey = keys.get(league, "pvp_great")
+    
+    tiers = get_tier_list()
+    scored = []
+    
+    for p in _state["pokemons"]:
+        if p.get("isEgg"):
+            continue
+        if league != "ML" and p["cp"] > cp_limit:
+            continue
+        from scoring import pvp_score, pvp_cp, pvp_iv_rank
+        score = pvp_score(p["pid"], p["iv_a"], p["iv_d"], p["iv_s"],
+                          cp_limit, tiers, p["name"], lkey)
+        if score < 1:
+            continue
+        lvl, best_cp = pvp_cp(p["pid"], p["iv_a"], p["iv_d"], p["iv_s"], cp_limit)
+        rank, total, rank_pct = pvp_iv_rank(p["pid"], p["iv_a"], p["iv_d"], p["iv_s"], cp_limit)
+        scored.append({
+            **p,
+            "pvp_score": round(score),
+            "pvp_cp": best_cp,
+            "pvp_lvl": lvl,
+            "pvp_rank": rank,
+            "pvp_rank_pct": rank_pct,
+        })
+        
+    scored.sort(key=lambda x: -x["pvp_score"])
+    top_candidates = scored[:25]
+    
+    h = make_hash(
+        league,
+        [(p["pid"], p["cp"], p["iv_pct"], p["pvp_rank"]) for p in top_candidates],
+        "pvp_teams_v1"
+    )
+    cached = get_cache(h)
+    if cached:
+        return jsonify({"response": cached, "cached": True})
+        
+    prompt = build_pvp_teams_prompt(league, top_candidates)
+    
+    try:
+        resp = call_ai(prompt, _SYSTEM_TACTICIAN)
+        set_cache(h, f"pvp_teams_{league}", resp)
+        return jsonify({"response": resp, "cached": False})
+    except Exception as exc:
+        log.error("AI error in pvp teams analysis: %s", exc)
         return jsonify({"error": f"Błąd AI: {exc}"}), 500

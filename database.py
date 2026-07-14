@@ -104,9 +104,11 @@ def load_last_state() -> None:
             return
         raw    = json.loads(row["raw_json"])
         parsed = parse_pgo_json(raw)
-        _state["pokemons"] = parsed["pokemons"]
-        _state["items"]    = parsed["items"]
-        _state["loaded"]   = True
+        _state["pokemons"]  = parsed["pokemons"]
+        _state["items"]     = parsed["items"]
+        _state["player"]    = parsed.get("player")
+        _state["pvp_stats"] = parsed.get("pvp_stats")
+        _state["loaded"]    = True
         log.info("Restored last upload: %d pokemons", len(parsed["pokemons"]))
     except Exception as exc:
         log.warning("Could not restore last upload: %s", exc)

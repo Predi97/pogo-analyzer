@@ -102,4 +102,72 @@ def parse_pgo_json(raw: dict) -> dict:
         for iid, cnt in sorted(item_map.items(), key=lambda kv: -kv[1])
     ]
 
-    return {"pokemons": pokemons, "items": items}
+    # ── Player Info & Currency ────────────────────────────────────────────────
+    player_raw = raw.get("player", {})
+    account_raw = raw.get("account", {})
+
+    stardust = 0
+    coins = 0
+    currency = account_raw.get("currencyBalance", [])
+    if isinstance(currency, list):
+        for c in currency:
+            if c.get("currencyType") == "STARDUST":
+                stardust = c.get("quantity", 0)
+            elif c.get("currencyType") == "POKECOIN":
+                coins = c.get("quantity", 0)
+
+    player_info = {
+        "name": account_raw.get("name", ""),
+        "team": account_raw.get("team", 0), # 1: Mystic, 2: Valor, 3: Instinct
+        "level": player_raw.get("level", 0),
+        "experience": player_raw.get("experience", 0),
+        "kmWalked": round(player_raw.get("kmWalked", 0.0), 1),
+        "pokemonsCaught": player_raw.get("numPokemonCaptured", 0),
+        "eggsHatched": player_raw.get("numEggsHatched", 0),
+        "evolutions": player_raw.get("numEvolutions", 0),
+        "pokeStopsVisited": player_raw.get("pokeStopVisits", 0),
+        "stardust": stardust,
+        "coins": coins,
+        "maxPokeStorage": account_raw.get("maxPokemonStorage", 500),
+        "maxItemStorage": account_raw.get("maxItemStorage", 500)
+    }
+
+    # ── PVP Statistics ────────────────────────────────────────────────────────
+    combat_log = account_raw.get("combatLog", {})
+    curr_season = combat_log.get("currentSeasonResults", {})
+    lifetime = combat_log.get("lifetimeResults", {})
+
+    combat_stats = player_raw.get("combatStats", {})
+    badges = combat_stats.get("badges", {})
+
+    gl_data = badges.get("52", {}) or badges.get(52, {}) or {}
+    ul_data = badges.get("53", {}) or badges.get(53, {}) or {}
+    ml_data = badges.get("54", {}) or badges.get(54, {}) or {}
+
+    pvp_info = {
+        "season_rank": curr_season.get("rank", 0),
+        "season_battles": curr_season.get("totalBattles", 0),
+        "season_wins": curr_season.get("totalWins", 0),
+        "season_stardust": curr_season.get("stardustEarned", 0),
+        "season_streak": curr_season.get("currentStreak", 0),
+        "season_longest_streak": curr_season.get("longestWinStreak", 0),
+
+        "lifetime_battles": lifetime.get("totalBattles", 0),
+        "lifetime_wins": lifetime.get("totalWins", 0),
+        "lifetime_stardust": lifetime.get("stardustEarned", 0),
+        "lifetime_longest_streak": lifetime.get("longestWinStreak", 0),
+
+        "gl_battles": gl_data.get("numTotal", 0),
+        "gl_wins": gl_data.get("numWon", 0),
+        "ul_battles": ul_data.get("numTotal", 0),
+        "ul_wins": ul_data.get("numWon", 0),
+        "ml_battles": ml_data.get("numTotal", 0),
+        "ml_wins": ml_data.get("numWon", 0),
+    }
+
+    return {
+        "pokemons": pokemons,
+        "items": items,
+        "player": player_info,
+        "pvp_stats": pvp_info
+    }

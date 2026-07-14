@@ -340,6 +340,114 @@ tr:hover td{background:rgba(163,240,80,.025)}
   .upload-card{padding:40px 28px}
   .form-row{grid-template-columns:1fr;gap:4px}
 }
+
+/* ── Event Pokémon & Calendar Tiers ────────────────────────── */
+.event-pokes-title {
+  font-family: var(--fh);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--accent);
+  margin-top: 14px;
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+.event-pokes-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+  margin-bottom: 12px;
+}
+.event-poke-card {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 180px;
+  flex: 1 1 calc(25% - 8px);
+  transition: all 0.2s ease;
+}
+.event-poke-card:hover {
+  border-color: rgba(163,240,80,.25);
+  background: rgba(163,240,80,.02);
+}
+.event-poke-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.event-poke-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+.event-poke-name-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 700;
+  color: var(--text);
+  font-size: 12px;
+}
+.event-poke-evo {
+  font-size: 9px;
+  color: var(--muted);
+  font-weight: 500;
+}
+.event-poke-source {
+  font-size: 9px;
+  color: var(--muted);
+  font-family: var(--fm);
+}
+.event-poke-tiers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 1px;
+}
+.tier-badge {
+  font-size: 8px;
+  font-weight: 800;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-family: var(--fm);
+  text-transform: uppercase;
+}
+.tb-s { background: rgba(255,87,87,.15); color: #ff5757; border: 1px solid rgba(255,87,87,.3); }
+.tb-a { background: rgba(255,140,66,.15); color: #ff8c42; border: 1px solid rgba(255,140,66,.3); }
+.tb-b { background: rgba(255,214,0,.15); color: var(--yellow); border: 1px solid rgba(255,214,0,.3); }
+.tb-c { background: rgba(57,232,122,.15); color: var(--green); border: 1px solid rgba(57,232,122,.3); }
+.tb-d { background: rgba(100,116,139,.15); color: #94a3b8; border: 1px solid rgba(100,116,139,.3); }
+
+.event-countdown-active {
+  color: var(--green);
+  font-family: var(--fm);
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 8px;
+}
+.event-countdown-upcoming {
+  color: var(--accent);
+  font-family: var(--fm);
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+/* Team themes */
+.team-mystic   { background: rgba(59,130,246,.08) !important; border: 1px solid rgba(59,130,246,.25) !important; color: #3b82f6 !important; }
+.team-valor    { background: rgba(239,68,68,.08) !important; border: 1px solid rgba(239,68,68,.25) !important; color: #ef4444 !important; }
+.team-instinct { background: rgba(234,179,8,.08) !important; border: 1px solid rgba(234,179,8,.25) !important; color: #eab308 !important; }
+
+.team-mystic-bg   { background: #3b82f6 !important; color: #fff !important; }
+.team-valor-bg    { background: #ef4444 !important; color: #fff !important; }
+.team-instinct-bg { background: #eab308 !important; color: #000 !important; }
 </style>
 </head>
 <body>
@@ -352,6 +460,15 @@ tr:hover td{background:rgba(163,240,80,.025)}
     <div id="upload-small">
       <div class="btn btn-outline btn-sm">↺ Zmień plik</div>
       <input type="file" accept=".json" id="upload-input-small">
+    </div>
+  </div>
+
+  <!-- Player Card in Sidebar -->
+  <div id="sidebar-player" style="display: none; padding: 10px 16px; border-bottom: 1px solid var(--border); align-items: center; gap: 10px;">
+    <div id="s-player-avatar" style="width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 800; border: 2px solid var(--muted); flex-shrink: 0; background: var(--bg3);"></div>
+    <div style="display: flex; flex-direction: column; overflow: hidden; line-height: 1.35;">
+      <div id="s-player-name" style="font-weight: 700; color: var(--text); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></div>
+      <div id="s-player-level" style="font-size: 11px; color: var(--muted); font-family: var(--fm);"></div>
     </div>
   </div>
 
@@ -498,6 +615,35 @@ tr:hover td{background:rgba(163,240,80,.025)}
     <!-- ── TAB: PvP ────────────────────────────────────────────── -->
     <div class="panel" id="panel-pvp">
       <div class="panel-title">🏆 PvP</div>
+      <!-- PvP Battle Stats Dashboard -->
+      <div id="pvp-stats-card" style="display: none; margin-bottom: 20px;" class="card">
+        <div class="card-title">Twoje statystyki pojedynków PvP</div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px;">
+          <div style="background: var(--bg3); padding: 10px; border-radius: 8px; border: 1px solid var(--border2); text-align: center;">
+            <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Ranga Sezonu</div>
+            <div id="pvp-stat-rank" style="font-family: var(--fm); font-size: 18px; font-weight: 800; color: var(--yellow);">—</div>
+          </div>
+          <div style="background: var(--bg3); padding: 10px; border-radius: 8px; border: 1px solid var(--border2); text-align: center;">
+            <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Wskaźnik Wygranych</div>
+            <div id="pvp-stat-winrate" style="font-family: var(--fm); font-size: 18px; font-weight: 800; color: var(--green);">—</div>
+            <div id="pvp-stat-ratio" style="font-size: 10px; color: var(--muted); margin-top: 2px;">—</div>
+          </div>
+          <div style="background: var(--bg3); padding: 10px; border-radius: 8px; border: 1px solid var(--border2); text-align: center;">
+            <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Najdłuższa seria</div>
+            <div id="pvp-stat-streak" style="font-family: var(--fm); font-size: 18px; font-weight: 800; color: var(--orange);">—</div>
+          </div>
+          <div style="background: var(--bg3); padding: 10px; border-radius: 8px; border: 1px solid var(--border2); text-align: center;">
+            <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Zarobiony Stardust</div>
+            <div id="pvp-stat-dust" style="font-family: var(--fm); font-size: 18px; font-weight: 800; color: var(--accent);">—</div>
+          </div>
+        </div>
+        
+        <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border2); display: flex; gap: 20px; flex-wrap: wrap; font-size: 12px; color: var(--muted);">
+          <div>🟦 Great League: <b id="pvp-stat-gl" style="color: var(--text)">—</b></div>
+          <div>🟣 Ultra League: <b id="pvp-stat-ul" style="color: var(--text)">—</b></div>
+          <div>🟡 Master League: <b id="pvp-stat-ml" style="color: var(--text)">—</b></div>
+        </div>
+      </div>
       <div class="toolbar">
         <button class="tab-sub active" data-league="GL">🟦 Great League ≤1500</button>
         <button class="tab-sub" data-league="UL">🟣 Ultra League ≤2500</button>
@@ -512,6 +658,11 @@ tr:hover td{background:rgba(163,240,80,.025)}
           </tr></thead>
           <tbody id="pvp-tbody"></tbody>
         </table>
+      </div>
+      <button class="btn btn-primary" id="btn-analyze-pvp" style="margin-top: 16px;">🤖 Analiza AI — składy PvP</button>
+      <div id="pvp-ai-result" style="margin-top: 16px; display: none;" class="card">
+        <div class="card-title" id="pvp-ai-title">Analiza składów PvP</div>
+        <div class="ai-resp" id="pvp-ai-body"></div>
       </div>
     </div>
 
@@ -535,11 +686,17 @@ tr:hover td{background:rgba(163,240,80,.025)}
       <div class="toolbar">
         <button class="btn btn-outline btn-sm" id="btn-refresh-events">🔄 Odśwież eventy</button>
         <select id="events-filter">
-          <option value="all">Wszystkie</option>
+          <option value="all">Wszystkie statusy</option>
           <option value="active">🟢 Aktywne</option>
           <option value="upcoming">🔵 Nadchodzące</option>
           <option value="ended">⬜ Zakończone</option>
         </select>
+        <select id="events-tier-filter">
+          <option value="all">Wszystkie Pokemony</option>
+          <option value="meta">Wartościowe (S/A/B)</option>
+          <option value="s_only">Tylko top tier (S)</option>
+        </select>
+        <input type="text" id="events-search" placeholder="Szukaj wydarzenia lub Pokémona..." style="flex: 1; max-width: 300px;">
       </div>
       <div id="events-list" class="events-grid"></div>
     </div>
@@ -746,7 +903,7 @@ function setupUpload(input) {
     try {
       const data = await fetch("/api/upload", { method: "POST", body: fd }).then(r => r.json());
       if (data.error) throw new Error(data.error);
-      onUploadSuccess(data.stats);
+      onUploadSuccess(data.stats, data.player, data.pvp_stats);
     } catch (e) {
       showErr(e.message);
     }
@@ -767,7 +924,7 @@ zone.addEventListener("drop", e => {
     fd.append("file", file);
     fetch("/api/upload", { method: "POST", body: fd })
       .then(r => r.json())
-      .then(d => d.error ? showErr(d.error) : onUploadSuccess(d.stats))
+      .then(d => d.error ? showErr(d.error) : onUploadSuccess(d.stats, d.player, d.pvp_stats))
       .catch(e => showErr(e.message));
   }
 });
@@ -779,7 +936,7 @@ function showErr(msg) {
   setTimeout(() => { el.style.display = "none"; }, 5000);
 }
 
-async function onUploadSuccess(stats) {
+async function onUploadSuccess(stats, player, pvp_stats) {
   $("upload-zone").style.display   = "none";
   $("upload-err").style.display    = "none";
   $("main-ui").style.display       = "block";
@@ -797,6 +954,55 @@ async function onUploadSuccess(stats) {
   $("s-lucky").textContent  = stats.luckies;
   $("tb-poke").textContent  = stats.total;
   if (stats.stardust) $("s-dust").textContent = stats.stardust.toLocaleString("pl-PL");
+
+  // Handle Player Card in Sidebar
+  if (player) {
+    $("sidebar-player").style.display = "flex";
+    $("s-player-name").textContent = player.name || "Gracz";
+    $("s-player-level").textContent = `Lvl ${player.level || "?"} · ${player.kmWalked || 0} km`;
+    
+    const avatar = $("s-player-avatar");
+    avatar.className = "";
+    if (player.team === 1) {
+      avatar.classList.add("team-mystic-bg");
+      avatar.textContent = "❄️";
+    } else if (player.team === 2) {
+      avatar.classList.add("team-valor-bg");
+      avatar.textContent = "🔥";
+    } else if (player.team === 3) {
+      avatar.classList.add("team-instinct-bg");
+      avatar.textContent = "⚡";
+    } else {
+      avatar.textContent = "👤";
+    }
+  } else {
+    $("sidebar-player").style.display = "none";
+  }
+
+  // Handle PvP Battle stats dashboard
+  if (pvp_stats && pvp_stats.season_battles > 0) {
+    $("pvp-stats-card").style.display = "block";
+    $("pvp-stat-rank").textContent = pvp_stats.season_rank || "—";
+    
+    const winrate = pvp_stats.season_battles > 0 
+      ? ((pvp_stats.season_wins / pvp_stats.season_battles) * 100).toFixed(1) + "%" 
+      : "—";
+    $("pvp-stat-winrate").textContent = winrate;
+    $("pvp-stat-ratio").textContent = `${pvp_stats.season_wins} W / ${pvp_stats.season_battles} B`;
+    $("pvp-stat-streak").textContent = pvp_stats.season_longest_streak || "—";
+    $("pvp-stat-dust").textContent = pvp_stats.season_stardust ? pvp_stats.season_stardust.toLocaleString("pl-PL") : "—";
+    
+    const formatLeague = (wins, total) => {
+      if (!total) return "—";
+      const pct = ((wins / total) * 100).toFixed(0);
+      return `${wins}/${total} (${pct}%)`;
+    };
+    $("pvp-stat-gl").textContent = formatLeague(pvp_stats.gl_wins, pvp_stats.gl_battles);
+    $("pvp-stat-ul").textContent = formatLeague(pvp_stats.ul_wins, pvp_stats.ul_battles);
+    $("pvp-stat-ml").textContent = formatLeague(pvp_stats.ml_wins, pvp_stats.ml_battles);
+  } else {
+    $("pvp-stats-card").style.display = "none";
+  }
 
   await Promise.all([loadPokemons(), loadItems(), loadEvents(), loadTiers(), loadCacheStats(), loadConfig()]);
   loadRaid();
@@ -1044,26 +1250,164 @@ $("btn-refresh-events").addEventListener("click", async () => {
 });
 
 $("events-filter").addEventListener("change", renderEvents);
+$("events-tier-filter").addEventListener("change", renderEvents);
+$("events-search").addEventListener("input", renderEvents);
 
 function renderEvents() {
   const filt = $("events-filter").value;
-  const list = S.events.filter(ev => filt === "all" || ev.status === filt);
+  const tierFilt = $("events-tier-filter").value;
+  const searchVal = $("events-search").value.toLowerCase().trim();
+  
+  let list = S.events;
+  
+  // 1. Status Filter
+  if (filt !== "all") {
+    list = list.filter(ev => ev.status === filt);
+  }
+  
+  // 2. Search & Tier Filter
+  list = list.filter(ev => {
+    // Search match (checks title, pokemon names, and evolution names)
+    const matchesSearch = !searchVal || 
+      ev.name.toLowerCase().includes(searchVal) ||
+      (ev.featured_pokemons && ev.featured_pokemons.some(p => 
+        p.name.toLowerCase().includes(searchVal) || 
+        (p.evolves_to && p.evolves_to.toLowerCase().includes(searchVal))
+      ));
+      
+    if (!matchesSearch) return false;
+    
+    // Tier filter match
+    if (tierFilt !== "all") {
+      if (!ev.featured_pokemons || ev.featured_pokemons.length === 0) return false;
+      const hasMatchingPoke = ev.featured_pokemons.some(p => {
+        if (!p.tiers) return false;
+        const ratings = Object.values(p.tiers);
+        if (tierFilt === "s_only") {
+          return ratings.some(r => r && r.toUpperCase().startsWith("S"));
+        } else if (tierFilt === "meta") {
+          return ratings.some(r => r && ["S", "A", "B"].some(t => r.toUpperCase().startsWith(t)));
+        }
+        return false;
+      });
+      if (!hasMatchingPoke) return false;
+    }
+    
+    return true;
+  });
+
+  function getEventTimeStatus(ev) {
+    if (!ev.start || !ev.end) return "";
+    const now = new Date();
+    const start = new Date(ev.start);
+    const end = new Date(ev.end);
+    
+    if (now < start) {
+      const diff = start - now;
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const text = days > 0 ? `${days}d ${hours}h` : `${hours}h`;
+      return `<span class="event-countdown-upcoming" title="${ev.start}">⏳ Zaczyna się za: ${text}</span>`;
+    } else if (now >= start && now <= end) {
+      const diff = end - now;
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const text = days > 0 ? `${days}d ${hours}h` : `${hours}h`;
+      return `<span class="event-countdown-active" title="${ev.end}">⚡ Aktywne (koniec za: ${text})</span>`;
+    } else {
+      return `<span style="color:var(--muted); font-size:11px;">⬜ Wydarzenie zakończone</span>`;
+    }
+  }
+
+  const tierClass = (r) => {
+    if (!r) return "";
+    const first = r.charAt(0).toUpperCase();
+    return `tb-${first.toLowerCase()}`;
+  };
+
   $("events-list").innerHTML = list.map(ev => {
     const statusCls   = { active:"status-active", upcoming:"status-upcoming", ended:"status-ended" }[ev.status] || "";
     const statusLabel = { active:"🟢 Aktywny", upcoming:`🔵 Za ${ev.days_until}d`, ended:"⬜ Zakończony" }[ev.status] || ev.status;
-    const bonuses = ev.bonuses.slice(0,4).map(b => `<span style="font-size:11px">• ${typeof b === "string" ? b : JSON.stringify(b)}</span>`).join("<br>");
-    const spawns  = ev.spawns.slice(0,8).map(s => typeof s === "string" ? s : (s.name||"?")).join(", ");
+    const bonuses = ev.bonuses.slice(0,6).map(b => `<span style="font-size:11px">• ${typeof b === "string" ? b : JSON.stringify(b)}</span>`).join("<br>");
+    
+    // Render featured pokemons cards
+    let pokesHtml = "";
+    if (ev.featured_pokemons && ev.featured_pokemons.length > 0) {
+      const sortedPokes = [...ev.featured_pokemons].sort((a, b) => {
+        const weights = {
+          'S+': 1, 'S': 2, 'S-': 3,
+          'A+': 4, 'A': 5, 'A-': 6,
+          'B+': 7, 'B': 8, 'B-': 9,
+          'C+': 10, 'C': 11, 'C-': 12,
+          'D+': 13, 'D': 14, 'D-': 15
+        };
+        const getBestWeight = (tiers) => {
+          if (!tiers) return 999;
+          const ratings = Object.values(tiers);
+          let best = 999;
+          ratings.forEach(r => {
+            if (!r) return;
+            const w = weights[r.toUpperCase()] || 100;
+            if (w < best) best = w;
+          });
+          return best;
+        };
+        return getBestWeight(a.tiers) - getBestWeight(b.tiers);
+      });
+      
+      const pokeCards = sortedPokes.map(p => {
+        const shinyBadge = p.can_be_shiny ? `<span style="color:var(--yellow); font-size:11px;" title="Może być shiny">✨</span>` : "";
+        const evoLabel = p.is_evolution && p.evolves_to ? `<div class="event-poke-evo">Ewoluuje w: <b>${p.evolves_to}</b></div>` : "";
+        const sourceTag = p.source ? `<span class="event-poke-source">${p.source}</span>` : "";
+        
+        const tierBadges = [];
+        if (p.tiers) {
+          if (p.tiers.raid)       tierBadges.push(`<span class="tier-badge ${tierClass(p.tiers.raid)}">⚔️ R: ${p.tiers.raid}</span>`);
+          if (p.tiers.pvp_great)  tierBadges.push(`<span class="tier-badge ${tierClass(p.tiers.pvp_great)}">🏆 GL: ${p.tiers.pvp_great}</span>`);
+          if (p.tiers.pvp_ultra)  tierBadges.push(`<span class="tier-badge ${tierClass(p.tiers.pvp_ultra)}">🏆 UL: ${p.tiers.pvp_ultra}</span>`);
+          if (p.tiers.pvp_master) tierBadges.push(`<span class="tier-badge ${tierClass(p.tiers.pvp_master)}">🏆 ML: ${p.tiers.pvp_master}</span>`);
+        }
+        
+        const tiersHtml = tierBadges.length > 0 
+          ? `<div class="event-poke-tiers">${tierBadges.join("")}</div>` 
+          : `<div style="font-size: 10px; color: var(--muted); font-style: italic;">Brak danych meta</div>`;
+          
+        return `<div class="event-poke-card">
+          <img src="${p.image}" class="event-poke-img" onerror="this.src='https://img.pokemondb.net/sprites/sword-shield/icon/unown.png';">
+          <div class="event-poke-details">
+            <div class="event-poke-name-row">
+              <span>${p.name}</span>
+              ${shinyBadge}
+            </div>
+            ${evoLabel}
+            ${tiersHtml}
+            ${sourceTag}
+          </div>
+        </div>`;
+      }).join("");
+      
+      pokesHtml = `
+        <div class="event-pokes-title">Pokémony w wydarzeniu:</div>
+        <div class="event-pokes-list">${pokeCards}</div>
+      `;
+    }
+
+    const countdownHtml = getEventTimeStatus(ev);
+
     return `<div class="event-card ${ev.status}">
       <div class="event-header">
         <div>
           <div class="event-name">${ev.name}</div>
-          <div class="event-meta">${ev.start ? ev.start.split("T")[0] : ""} → ${ev.end ? ev.end.split("T")[0] : ""} · ${ev.type}</div>
+          <div class="event-meta">
+            ${ev.start ? ev.start.replace("T", " ").substring(0, 16) : ""} → ${ev.end ? ev.end.replace("T", " ").substring(0, 16) : ""} · ${ev.type || "Wydarzenie"}
+            ${countdownHtml}
+          </div>
           ${ev.link ? `<a href="${ev.link}" target="_blank" style="font-size:11px">🔗 Szczegóły</a>` : ""}
         </div>
         <span class="event-status ${statusCls}">${statusLabel}</span>
       </div>
       ${bonuses ? `<div class="event-bonuses">${bonuses}</div>` : ""}
-      ${spawns  ? `<div style="font-size:11px;color:var(--muted);margin-bottom:8px">Spawny: ${spawns}</div>` : ""}
+      ${pokesHtml}
       <div class="event-actions">
         <button class="btn btn-primary btn-sm" onclick="generateEventStrategy('${ev.id}')">🤖 Strategia AI</button>
         <div id="ev-loading-${ev.id}" style="display:none;align-items:center;gap:6px">
@@ -1072,7 +1416,7 @@ function renderEvents() {
       </div>
       <div id="ev-strategy-${ev.id}" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)" class="ai-resp"></div>
     </div>`;
-  }).join("") || `<p style="color:var(--muted);font-size:13px">Brak eventów</p>`;
+  }).join("") || `<p style="color:var(--muted);font-size:13px">Brak pasujących wydarzeń</p>`;
 }
 
 async function generateEventStrategy(evId) {
@@ -1234,6 +1578,7 @@ $$(".tab-sub").forEach(btn => {
     $$(".tab-sub").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     _pvpLeague = btn.dataset.league;
+    $("pvp-ai-result").style.display = "none";
     if (!_pvpData[_pvpLeague].length) loadPvP(_pvpLeague);
     else renderPvP();
   });
@@ -1262,8 +1607,12 @@ function renderPvP() {
   const leagueColor = {GL:"var(--cyan)", UL:"var(--purple)", ML:"var(--yellow)"}[_pvpLeague];
   $("pvp-tbody").innerHTML = data.map((p, i) => {
     const tiers = p.tiers || {};
-    const tb = Object.entries(tiers).map(([cat, t]) =>
-      `<span class="badge badge-${t.toLowerCase()}">${cat.split("_").pop().toUpperCase()} ${t}</span>`).join("");
+    let tb = "";
+    const keyMap = { GL: "pvp_great", UL: "pvp_ultra", ML: "pvp_master" };
+    const t = tiers[keyMap[_pvpLeague]];
+    if (t) {
+      tb = `<span class="badge badge-${t.toLowerCase()}">${_pvpLeague} ${t}</span>`;
+    }
     const tags = [
       p.shiny  ? `<span class="badge badge-shiny">✨</span>` : "",
       p.shadow ? `<span class="badge badge-shadow">Shadow</span>` : "",
@@ -1286,6 +1635,31 @@ function renderPvP() {
     </tr>`;
   }).join("") || `<tr><td colspan="11" style="padding:24px;text-align:center;color:var(--muted)">Brak danych</td></tr>`;
 }
+
+$("btn-analyze-pvp").addEventListener("click", async () => {
+  const btn = $("btn-analyze-pvp");
+  btn.disabled = true;
+  btn.textContent = "⏳ Analizuję składy PvP...";
+  
+  try {
+    const d = await api("/api/analyze-pvp-teams", {
+      method: "POST",
+      body: JSON.stringify({ league: _pvpLeague })
+    });
+    
+    const leagueNames = { GL: "Great League (CP ≤1500)", UL: "Ultra League (CP ≤2500)", ML: "Master League" };
+    const leagueName = leagueNames[_pvpLeague] || _pvpLeague;
+    $("pvp-ai-title").innerHTML = `Analiza składów PvP dla ${leagueName} ` 
+      + (d.cached ? '<span class="badge badge-lucky">z cache</span>' : "");
+    $("pvp-ai-body").innerHTML = mdToHtml(d.response);
+    $("pvp-ai-result").style.display = "block";
+  } catch (e) {
+    alert("Błąd AI: " + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "🤖 Analiza AI — składy PvP";
+  }
+});
 
 // ── Rozwój ────────────────────────────────────────────────────────────────────
 let _developData = null;
@@ -1387,7 +1761,7 @@ $("btn-save-cfg").addEventListener("click", async () => {
   try {
     const status = await api("/api/status");
     if (status.loaded) {
-      await onUploadSuccess(status.stats);
+      await onUploadSuccess(status.stats, status.player, status.pvp_stats);
     }
   } catch (_) {}
 })();

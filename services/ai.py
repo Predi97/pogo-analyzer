@@ -65,10 +65,15 @@ def build_items_prompt(items: list[dict], top_pokes: list[dict]) -> str:
 
 def build_event_prompt(event: dict, relevant_pokes: list[dict], items: list[dict]) -> str:
     bonuses  = "\n".join(f"  - {b}" for b in event.get("bonuses", [])) or "  brak danych"
-    spawns   = ", ".join(
-        (s.get("name") or s) if isinstance(s, dict) else str(s)
-        for s in event.get("spawns", [])[:15]
-    ) or "brak danych"
+    spawns_list = []
+    if "featured_pokemons" in event:
+        spawns_list = [p["name"] for p in event["featured_pokemons"]]
+    else:
+        spawns_list = [
+            (s.get("name") or s) if isinstance(s, dict) else str(s)
+            for s in event.get("spawns", [])
+        ]
+    spawns = ", ".join(spawns_list[:15]) or "brak danych"
     pokes_str = "\n".join(
         f"  - {p['name']} CP{p['cp']} IV{p['iv_pct']}% L{p['lvl']} {'Shadow' if p['shadow'] else ''}"
         for p in relevant_pokes
@@ -100,6 +105,35 @@ Strategia:
 **3. Moje Pokemony** — co zatrzymać/ewoluować/power-up'ować pod ten event?
 **4. Ekwipunek** — jakie itemy zużyć podczas eventu (kiedy i ile)?
 **5. Pułapki** — co NIE warto robić / na co uważać?"""
+
+
+def build_pvp_teams_prompt(league: str, candidates: list[dict]) -> str:
+    league_names = {"GL": "Great League (CP <= 1500)", "UL": "Ultra League (CP <= 2500)", "ML": "Master League (brak limitu CP)"}
+    league_name = league_names.get(league, league)
+    
+    pokes_str = "\n".join(
+        f"  - {p['name']} CP{p['cp']} (Max CP pod ligę: {p['pvp_cp']}, Lvl: {p['pvp_lvl']}, IV: {p['iv_pct']}%, Rank IV w lidze: #{p['pvp_rank']})"
+        for p in candidates
+    ) or "  Brak pasujących pokemonów w bazie"
+    
+    return f"""Przeanalizuj moje Pokemony i zaproponuj najlepsze składy (teamy 3-osobowe) do walk PvP w Pokemon GO dla ligi: {league_name}.
+    
+**Moje najlepsze Pokemony zakwalifikowane do tej ligi:**
+{pokes_str}
+
+W oparciu o aktualną metę Pokemon GO (zgodną z serwisami takimi jak PvPoke.com), stwórz szczegółowy raport taktyczny po polsku:
+
+**1. Rekomendowane składy (zaproponuj 2-3 konkretne teamy z moich Pokemonów):**
+   - Dla każdego teamu wskaż rolę: **Lead** (pierwszy walczący), **Safe Switch** (bezpieczna zmiana), **Closer** (zamykający).
+   - Krótko opisz synergię typu i jak grać danym składem (np. przynęta na tarcze, obrona przed kontrami).
+
+**2. Czego mi brakuje (brakujące ogniwa):**
+   - Jakie kluczowe Pokemony z obecnej top mety tej ligi (np. Registeel, Bastiodon, Cresselia, Lickitung) idealnie dopełniłyby moje Pokemony, gdybym je zdobył?
+   - Z którymi z moich obecnych Pokemonów stworzyłyby świetny duet/trio?
+
+**3. Porady techniczne:**
+   - Które z moich Pokemonów mają świetny Rank IV pod tę ligę i bezwzględnie warto zainwestować w nie Stardust i Candy?
+   - Sugestie dotyczące ataków (Fast / Charged Move), na które warto zmienić (używając TM)."""
 
 
 # ── AI providers ──────────────────────────────────────────────────────────────

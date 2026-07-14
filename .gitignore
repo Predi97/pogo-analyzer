@@ -13,3 +13,4 @@ PGSStats.json
 *.json
 *.csv
 *.deb
+scratch/

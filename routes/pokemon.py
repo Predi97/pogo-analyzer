@@ -13,6 +13,7 @@ from services.events import get_events
 from services.tiers import get_tier_list
 from state import _state
 from utils import _now_iso
+from data.moves import MOVES
 
 log = logging.getLogger(__name__)
 bp  = Blueprint("pokemon", __name__)
@@ -76,12 +77,27 @@ def api_pokemons():
         tier_data  = _tier_for(p["name"], tiers)
         event_tags = event_spawn_index.get(p["name"].lower(), [])
         gl_rank, _, _gl_pct = pvp_iv_rank(p["pid"], p["iv_a"], p["iv_d"], p["iv_s"], 1500)
+        
+        move1_id = p.get("move1")
+        move2_id = p.get("move2")
+        move3_id = p.get("move3")
+        
+        m1 = MOVES.get(move1_id) if move1_id else None
+        m2 = MOVES.get(move2_id) if move2_id else None
+        m3 = MOVES.get(move3_id) if move3_id else None
+        
         result.append({
             **p,
             "tiers":      tier_data,
             "best_tier":  _best_tier(tier_data),
             "event_tags": event_tags,
             "gl_rank":    gl_rank,
+            "move1_name": m1["name"] if m1 else "",
+            "move1_type": m1["type"] if m1 else "",
+            "move2_name": m2["name"] if m2 else "",
+            "move2_type": m2["type"] if m2 else "",
+            "move3_name": m3["name"] if m3 else "",
+            "move3_type": m3["type"] if m3 else "",
         })
     return jsonify(result)
 

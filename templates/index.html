@@ -220,6 +220,44 @@ tr:hover td{background:rgba(163,240,80,.025)}
 .rank-top10{background:rgba(77,240,192,.1);   color:var(--cyan);border:1px solid rgba(77,240,192,.3)}
 .rank-ok   {background:rgba(255,255,255,.04); color:var(--muted);border:1px solid rgba(255,255,255,.1)}
 
+/* ── Moves ───────────────────────────────────────────────────── */
+.moves-row {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 3px;
+}
+.move-tag {
+  font-size: 9px;
+  font-weight: 500;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+.move-tag.type-fire { border-left: 3px solid #ff4f4f; }
+.move-tag.type-water { border-left: 3px solid #3b82f6; }
+.move-tag.type-grass { border-left: 3px solid #10b981; }
+.move-tag.type-electric { border-left: 3px solid #ffd700; }
+.move-tag.type-ice { border-left: 3px solid #60a5fa; }
+.move-tag.type-fighting { border-left: 3px solid #d97706; }
+.move-tag.type-poison { border-left: 3px solid #a855f7; }
+.move-tag.type-ground { border-left: 3px solid #b45309; }
+.move-tag.type-flying { border-left: 3px solid #93c5fd; }
+.move-tag.type-psychic { border-left: 3px solid #ec4899; }
+.move-tag.type-bug { border-left: 3px solid #84cc16; }
+.move-tag.type-rock { border-left: 3px solid #a1a1aa; }
+.move-tag.type-ghost { border-left: 3px solid #6366f1; }
+.move-tag.type-dragon { border-left: 3px solid #4f46e5; }
+.move-tag.type-dark { border-left: 3px solid #374151; }
+.move-tag.type-steel { border-left: 3px solid #64748b; }
+.move-tag.type-fairy { border-left: 3px solid #f472b6; }
+.move-tag.type-normal { border-left: 3px solid #9ca3af; }
+
 /* ── AI button ────────────────────────────────────────────────── */
 .btn-ai{
   background:transparent;border:1px solid rgba(163,240,80,.3);
@@ -1093,7 +1131,15 @@ function renderPokemons() {
     ].join("");
     const yr = p.year <= 2018 ? "year-old" : p.year <= 2022 ? "year-mid" : "";
     return `<tr>
-      <td class="name-cell">${p.nick ? `<span title="${p.name}">${p.nick}</span>` : p.name}</td>
+      <td class="name-cell">
+        ${p.nick ? `<span title="${p.name}">${p.nick}</span>` : p.name}
+        ${p.move1_name ? `
+        <div class="moves-row">
+          <span class="move-tag type-${p.move1_type}" title="Fast Move">${p.move1_name}</span>
+          ${p.move2_name ? `<span class="move-tag type-${p.move2_type}" title="Charged Move">${p.move2_name}</span>` : ''}
+          ${p.move3_name ? `<span class="move-tag type-${p.move3_type}" title="Second Charged Move">${p.move3_name}</span>` : ''}
+        </div>` : ''}
+      </td>
       <td class="cp-cell">${p.cp}</td>
       <td class="mono">${p.lvl}</td>
       <td class="${ivClass(p.iv_pct)}">${p.iv_pct}%</td>

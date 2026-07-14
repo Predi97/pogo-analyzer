@@ -58,7 +58,8 @@ def pvp_cp(pid: int, iv_a: int, iv_d: int, iv_s: int,
 def pvp_score(pid: int, iv_a: int, iv_d: int, iv_s: int,
               cp_limit: int, tiers: dict, name: str, league_key: str) -> float:
     lvl, cp = pvp_cp(pid, iv_a, iv_d, iv_s, cp_limit)
-    if cp < max(10, cp_limit // 5):
+    min_cp = 1500 if cp_limit > 9000 else (cp_limit // 5)
+    if cp < max(10, min_cp):
         return 0.0
     bs = _BS.get(pid)
     if not bs:

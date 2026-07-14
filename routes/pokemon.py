@@ -269,3 +269,162 @@ def api_status():
         "player": _state.get("player"),
         "pvp_stats": _state.get("pvp_stats")
     })
+
+
+@bp.route("/api/raid-counters")
+def api_raid_counters():
+    boss_name = request.args.get("boss", "").strip()
+    if not boss_name:
+        return jsonify({"error": "Brak nazwy bossa"}), 400
+        
+    from data.pokemon_db import POKEMON_DB
+    from data.moves import MOVES
+    from data.cpm import level_to_cpm
+    import math
+    
+    # 1. Resolve Boss Types
+    def clean_name(raw_name: str) -> str:
+        s = raw_name.lower()
+        s = s.replace(" (shadow)", "")
+        s = s.replace(" (mega)", "")
+        s = s.replace(" (primal)", "")
+        s = s.replace(" (mega x)", "")
+        s = s.replace(" (mega y)", "")
+        s = s.replace("♀", "♀").replace("♂", "♂")
+        s = s.replace("mr. mime", "mr. mime")
+        s = s.replace("mime jr.", "mime jr.")
+        s = s.replace("ho-oh", "ho-oh")
+        s = s.replace("porygon-z", "porygon-z")
+        s = s.replace("jangmo-o", "jangmo-o")
+        s = s.replace("hakamo-o", "hakamo-o")
+        s = s.replace("kommo-o", "kommo-o")
+        s = s.replace("farfetch'd", "farfetch'd")
+        s = s.replace("sirfetch'd", "sirfetch'd")
+        s = s.replace("flabébé", "flabébé")
+        return s.strip()
+        
+    boss_key = clean_name(boss_name)
+    boss_entry = POKEMON_DB.get(boss_key)
+    if not boss_entry:
+        # Try matching by checking if any key is contained in boss_key or vice versa
+        matched_key = next((k for k in POKEMON_DB.keys() if k in boss_key or boss_key in k), None)
+        if matched_key:
+            boss_entry = POKEMON_DB[matched_key]
+            
+    if not boss_entry:
+        return jsonify({"error": f"Nie znaleziono danych o bossie: {boss_name}"}), 404
+        
+    boss_types = boss_entry["types"]
+    
+    # 2. Type chart
+    TYPE_CHART = {
+        "normal":   {"rock": 0.625, "ghost": 0.39, "steel": 0.625},
+        "fire":     {"fire": 0.625, "water": 0.625, "grass": 1.6, "ice": 1.6, "bug": 1.6, "rock": 0.625, "dragon": 0.625, "steel": 1.6},
+        "water":    {"fire": 1.6, "water": 0.625, "grass": 0.625, "ground": 1.6, "rock": 1.6, "dragon": 0.625},
+        "electric": {"water": 1.6, "electric": 0.625, "grass": 0.625, "ground": 0.39, "flying": 1.6, "dragon": 0.625},
+        "grass":    {"fire": 0.625, "water": 1.6, "grass": 0.625, "poison": 0.625, "ground": 1.6, "flying": 0.625, "bug": 0.625, "rock": 1.6, "dragon": 0.625, "steel": 0.625},
+        "ice":      {"fire": 0.625, "water": 0.625, "grass": 1.6, "ice": 0.625, "ground": 1.6, "flying": 1.6, "dragon": 1.6, "steel": 0.625},
+        "fighting": {"normal": 1.6, "ice": 1.6, "poison": 0.625, "flying": 0.625, "psychic": 0.625, "bug": 0.625, "rock": 1.6, "ghost": 0.39, "dark": 1.6, "steel": 1.6, "fairy": 0.625},
+        "poison":   {"grass": 1.6, "poison": 0.625, "ground": 0.625, "rock": 0.625, "ghost": 0.625, "steel": 0.39, "fairy": 1.6},
+        "ground":   {"fire": 1.6, "electric": 1.6, "grass": 0.625, "poison": 1.6, "flying": 0.39, "bug": 0.625, "rock": 1.6, "steel": 1.6},
+        "flying":   {"electric": 0.625, "grass": 1.6, "fighting": 1.6, "bug": 1.6, "rock": 0.625, "steel": 0.625},
+        "psychic":  {"fighting": 1.6, "poison": 1.6, "psychic": 0.625, "dark": 0.39, "steel": 0.625},
+        "bug":      {"fire": 0.625, "grass": 1.6, "fighting": 0.625, "poison": 0.625, "flying": 0.625, "ghost": 0.625, "steel": 0.625, "fairy": 0.625},
+        "rock":     {"fire": 1.6, "ice": 1.6, "fighting": 0.625, "ground": 0.625, "flying": 1.6, "bug": 1.6, "steel": 0.625},
+        "ghost":    {"normal": 0.39, "psychic": 1.6, "ghost": 1.6, "dark": 0.625},
+        "dragon":   {"dragon": 1.6, "steel": 0.625, "fairy": 0.39},
+        "dark":     {"fighting": 0.625, "psychic": 1.6, "ghost": 1.6, "dark": 0.625, "fairy": 0.625},
+        "steel":    {"fire": 0.625, "water": 0.625, "electric": 0.625, "ice": 1.6, "rock": 1.6, "steel": 0.625, "fairy": 1.6},
+        "fairy":    {"fire": 0.625, "fighting": 1.6, "poison": 0.625, "dragon": 1.6, "dark": 1.6, "steel": 0.625}
+    }
+    
+    def get_effectiveness(atk_type: str, def_types: list[str]) -> float:
+        mult = 1.0
+        for dt in def_types:
+            mult *= TYPE_CHART.get(atk_type, {}).get(dt, 1.0)
+        return mult
+
+    # 3. Rate pokemons in user's box
+    rated = []
+    for p in _state["pokemons"]:
+        # Get base stats of attacker
+        name_key = clean_name(p["name"])
+        att_entry = POKEMON_DB.get(name_key)
+        if not att_entry:
+            # Fallback
+            att_entry = {"types": ["normal"], "stats": [150, 150, 150]}
+            
+        base_atk, base_def, base_sta = att_entry["stats"]
+        lvl_mult = level_to_cpm(p["lvl"])
+        
+        # Attacker stats
+        atk = (base_atk + p["iv_a"]) * lvl_mult
+        dfn = (base_def + p["iv_d"]) * lvl_mult
+        sta = (base_sta + p["iv_s"]) * lvl_mult
+        
+        # Shadow adjustments
+        if p["shadow"]:
+            atk *= 1.2
+            dfn *= 0.8333
+            
+        tankiness = dfn * sta
+        
+        # Moves
+        move1_id = p.get("move1")
+        move2_id = p.get("move2")
+        move3_id = p.get("move3")
+        
+        m1 = MOVES.get(move1_id) if move1_id else None
+        m2 = MOVES.get(move2_id) if move2_id else None
+        m3 = MOVES.get(move3_id) if move3_id else None
+        
+        # Calculate move DPS
+        def get_move_score(move, is_fast_default):
+            if not move:
+                return 0.0
+            m_type = move.get("type", "normal")
+            m_power = move.get("power", 6.0 if is_fast_default else 50.0)
+            eff = get_effectiveness(m_type, boss_types)
+            stab = 1.2 if m_type in att_entry["types"] else 1.0
+            return m_power * eff * stab
+
+        m1_score = get_move_score(m1, True)
+        m2_score = get_move_score(m2, False)
+        m3_score = get_move_score(m3, False)
+        
+        ch_score = max(m2_score, m3_score)
+        
+        # Combined moves score (weighted cycle DPS proxy)
+        cycle_dps = 0.25 * m1_score + 0.75 * ch_score
+        
+        # Score combining DPS and tankiness (TDO)
+        counter_score = int(atk * cycle_dps * math.sqrt(tankiness) / 10.0)
+        
+        rated.append({
+            "pid": p["pid"],
+            "name": p["name"],
+            "cp": p["cp"],
+            "lvl": p["lvl"],
+            "iv_pct": p["iv_pct"],
+            "iv_a": p["iv_a"],
+            "iv_d": p["iv_d"],
+            "iv_s": p["iv_s"],
+            "shiny": p["shiny"],
+            "shadow": p["shadow"],
+            "lucky": p["lucky"],
+            "counter_score": counter_score,
+            "fast_move": m1["name"] if m1 else "Unknown",
+            "fast_move_type": m1["type"] if m1 else "",
+            "charged_move": (m2["name"] if m2_score >= m3_score else m3["name"]) if (m2 or m3) else "Unknown",
+            "charged_move_type": (m2["type"] if m2_score >= m3_score else m3["type"]) if (m2 or m3) else ""
+        })
+        
+    # Sort and take top 6
+    rated.sort(key=lambda x: -x["counter_score"])
+    top_counters = rated[:6]
+    
+    return jsonify({
+        "boss": boss_name,
+        "boss_types": boss_types,
+        "counters": top_counters
+    })

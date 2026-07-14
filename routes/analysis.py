@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 
-from data.base_stats import _EVOLVE_CHAIN
+from data.base_stats import _EVOLVE_CHAIN, _BS
 from data.pokedex import DEX
 from scoring import (
     _TIER_ORDER, _best_tier, _tier_for,
@@ -32,6 +32,151 @@ def api_raid_candidates():
         })
     scored.sort(key=lambda x: -x["raid_score"])
     return jsonify(scored[:60])
+
+
+def build_local_teams(candidates: list[dict], league: str) -> list[dict]:
+    # Typical PvP roles for top meta
+    PVP_ROLES = {
+        "Lickitung": "Safe Switch", "Cresselia": "Safe Switch", "Gligar": "Safe Switch",
+        "Vigoroth": "Safe Switch", "Umbreon": "Safe Switch", "Sableye": "Safe Switch",
+        "Dubwool": "Safe Switch", "Mandibuzz": "Safe Switch", "Dewgong": "Safe Switch",
+        "Jellicent": "Safe Switch", "Pelipper": "Safe Switch",
+        "Registeel": "Closer", "Bastiodon": "Closer", "Carbink": "Closer",
+        "Talonflame": "Closer", "Charizard": "Closer", "Trevenant": "Closer",
+        "Clodsire": "Closer", "Swampert": "Closer", "Greninja": "Closer",
+        "Annihilape": "Closer", "Serperior": "Closer", "Dragonair": "Closer",
+        "Froslass": "Closer", "Skeledirge": "Closer",
+        "Medicham": "Lead", "Skarmory": "Lead", "Lanturn": "Lead",
+        "Whiscash": "Lead", "Poliwrath": "Lead", "Pidgeot": "Lead",
+        "Gliscor": "Lead", "Galarian Stunfisk": "Lead", "Stunfisk": "Lead"
+    }
+
+    META_TYPES = {
+        "Medicham": ["fighting", "psychic"], "Skarmory": ["steel", "flying"],
+        "Lanturn": ["water", "electric"], "Whiscash": ["water", "ground"],
+        "Swampert": ["water", "ground"], "Registeel": ["steel"],
+        "Bastiodon": ["rock", "steel"], "Carbink": ["rock", "fairy"],
+        "Lickitung": ["normal"], "Cresselia": ["psychic"],
+        "Gligar": ["ground", "flying"], "Gliscor": ["ground", "flying"],
+        "Vigoroth": ["normal"], "Umbreon": ["dark"],
+        "Sableye": ["dark", "ghost"], "Dubwool": ["normal"],
+        "Mandibuzz": ["dark", "flying"], "Dewgong": ["water", "ice"],
+        "Jellicent": ["water", "ghost"], "Pelipper": ["water", "flying"],
+        "Talonflame": ["fire", "flying"], "Charizard": ["fire", "flying"],
+        "Trevenant": ["ghost", "grass"], "Clodsire": ["poison", "ground"],
+        "Greninja": ["water", "dark"], "Annihilape": ["fighting", "ghost"],
+        "Serperior": ["grass"], "Dragonair": ["dragon"],
+        "Froslass": ["ice", "ghost"], "Skeledirge": ["fire", "ghost"],
+        "Steelix": ["steel", "ground"], "Altaria": ["dragon", "flying"],
+        "Azumarill": ["water", "fairy"], "Obstagoon": ["dark", "normal"],
+        "Venusaur": ["grass", "poison"], "Galarian Stunfisk": ["ground", "steel"],
+        "Stunfisk": ["ground", "electric"], "Pidgeot": ["normal", "flying"]
+    }
+
+    leads = []
+    switches = []
+    closers = []
+
+    for c in candidates:
+        name = c["name"]
+        role = PVP_ROLES.get(name)
+        if not role:
+            bs = _BS.get(c["pid"])
+            if bs:
+                atk, dfs, sta = bs
+                if dfs + sta > 2.2 * atk:
+                    role = "Safe Switch"
+                elif atk > 1.1 * dfs:
+                    role = "Closer"
+                else:
+                    role = "Lead"
+            else:
+                role = "Lead"
+
+        c_with_role = {**c, "pvp_role": role}
+
+        if "Lead" in role:
+            leads.append(c_with_role)
+        if "Safe Switch" in role:
+            switches.append(c_with_role)
+        if "Closer" in role:
+            closers.append(c_with_role)
+
+    teams = []
+    used_ids = set()
+
+    for lead in leads:
+        if len(teams) >= 3:
+            break
+        lead_key = (lead["pid"], lead["cp"])
+        if lead_key in used_ids:
+            continue
+
+        for sw in switches:
+            if len(teams) >= 3:
+                break
+            sw_key = (sw["pid"], sw["cp"])
+            if sw_key in used_ids or sw["pid"] == lead["pid"]:
+                continue
+
+            lead_types = META_TYPES.get(lead["name"], [])
+            sw_types = META_TYPES.get(sw["name"], [])
+            if any(t in sw_types for t in lead_types if t):
+                continue
+
+            for closer in closers:
+                if len(teams) >= 3:
+                    break
+                closer_key = (closer["pid"], closer["cp"])
+                if closer_key in used_ids or closer["pid"] in (lead["pid"], sw["pid"]):
+                    continue
+
+                closer_types = META_TYPES.get(closer["name"], [])
+                if any(t in closer_types for t in lead_types + sw_types if t):
+                    continue
+
+                teams.append({
+                    "lead": lead,
+                    "switch": sw,
+                    "closer": closer,
+                    "description": f"Zbalansowany skład z liderem {lead['name']}, bezpieczną zmianą {sw['name']} i finisherem {closer['name']}."
+                })
+                used_ids.add(lead_key)
+                used_ids.add(sw_key)
+                used_ids.add(closer_key)
+                break
+
+    if len(teams) < 2:
+        for lead in leads:
+            if len(teams) >= 3:
+                break
+            lead_key = (lead["pid"], lead["cp"])
+            for sw in switches:
+                if len(teams) >= 3:
+                    break
+                sw_key = (sw["pid"], sw["cp"])
+                if sw["pid"] == lead["pid"]:
+                    continue
+                for closer in closers:
+                    if len(teams) >= 3:
+                        break
+                    closer_key = (closer["pid"], closer["cp"])
+                    if closer["pid"] in (lead["pid"], sw["pid"]):
+                        continue
+                    team_exists = any(
+                        t["lead"]["pid"] == lead["pid"] and t["switch"]["pid"] == sw["pid"] and t["closer"]["pid"] == closer["pid"]
+                        for t in teams
+                    )
+                    if not team_exists:
+                        teams.append({
+                            "lead": lead,
+                            "switch": sw,
+                            "closer": closer,
+                            "description": f"Skład {lead['name']} + {sw['name']} + {closer['name']} (dobrany według ról)."
+                        })
+                        break
+
+    return teams
 
 
 @bp.route("/api/pvp-candidates")
@@ -68,7 +213,14 @@ def api_pvp_candidates():
             "pvp_rank_pct":   rank_pct,
         })
     scored.sort(key=lambda x: -x["pvp_score"])
-    return jsonify(scored[:60])
+    top_candidates = scored[:60]
+
+    local_teams = build_local_teams(scored[:20], league)
+
+    return jsonify({
+        "candidates": top_candidates,
+        "local_teams": local_teams
+    })
 
 
 @bp.route("/api/develop-candidates")

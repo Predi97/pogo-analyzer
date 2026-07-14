@@ -659,6 +659,12 @@ tr:hover td{background:rgba(163,240,80,.025)}
           <tbody id="pvp-tbody"></tbody>
         </table>
       </div>
+      <!-- Local PvP Team Suggestions -->
+      <div id="pvp-local-teams-card" style="display: none; margin-bottom: 20px;" class="card">
+        <div class="card-title">Sugerowane składy PvP (kalkulacja lokalna)</div>
+        <div id="pvp-local-teams-list" style="display: flex; flex-direction: column; gap: 12px;"></div>
+      </div>
+
       <button class="btn btn-primary" id="btn-analyze-pvp" style="margin-top: 16px;">🤖 Analiza AI — składy PvP</button>
       <div id="pvp-ai-result" style="margin-top: 16px; display: none;" class="card">
         <div class="card-title" id="pvp-ai-title">Analiza składów PvP</div>
@@ -1571,6 +1577,7 @@ function renderRaid() {
 
 // ── PvP ───────────────────────────────────────────────────────────────────────
 let _pvpData = {GL:[], UL:[], ML:[]};
+let _pvpLocalTeams = {GL:[], UL:[], ML:[]};
 let _pvpLeague = "GL";
 
 $$(".tab-sub").forEach(btn => {
@@ -1579,14 +1586,74 @@ $$(".tab-sub").forEach(btn => {
     btn.classList.add("active");
     _pvpLeague = btn.dataset.league;
     $("pvp-ai-result").style.display = "none";
-    if (!_pvpData[_pvpLeague].length) loadPvP(_pvpLeague);
-    else renderPvP();
+    if (!_pvpData[_pvpLeague].length) {
+      loadPvP(_pvpLeague);
+    } else {
+      renderPvP();
+      renderLocalTeams(_pvpLocalTeams[_pvpLeague]);
+    }
   });
 });
 
 async function loadPvP(league) {
-  _pvpData[league] = await api(`/api/pvp-candidates?league=${league}`);
-  if (_pvpLeague === league) renderPvP();
+  const res = await api(`/api/pvp-candidates?league=${league}`);
+  _pvpData[league] = res.candidates || [];
+  _pvpLocalTeams[league] = res.local_teams || [];
+  if (_pvpLeague === league) {
+    renderPvP();
+    renderLocalTeams(_pvpLocalTeams[league]);
+  }
+}
+
+function renderLocalTeams(teams) {
+  const container = $("pvp-local-teams-list");
+  if (!teams || teams.length === 0) {
+    $("pvp-local-teams-card").style.display = "none";
+    return;
+  }
+  
+  const leagueColor = { GL: "var(--cyan)", UL: "var(--purple)", ML: "var(--yellow)" }[_pvpLeague];
+  
+  container.innerHTML = teams.map((team, idx) => {
+    return `
+      <div style="background: var(--bg3); padding: 12px; border-radius: 8px; border: 1px solid var(--border2); display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <b style="color: var(--text); font-size: 13px;">Skład #${idx + 1}</b>
+          <span style="font-size: 11px; color: ${leagueColor}; font-weight: 700; font-family: var(--fm);">${_pvpLeague}</span>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px;">
+          <!-- LEAD -->
+          <div style="display: flex; flex-direction: column; align-items: center; text-align: center; background: var(--bg2); padding: 8px; border-radius: 6px; border: 1px solid var(--border); overflow: hidden;">
+            <span style="font-size: 8px; color: var(--muted); text-transform: uppercase; font-weight: 700;">Lider (Lead)</span>
+            <b style="font-size: 11px; color: var(--text); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;" title="${team.lead.name}">${team.lead.name}</b>
+            <span style="font-size: 10px; color: var(--muted); margin-top: 2px; font-family: var(--fm)">CP ${team.lead.cp}</span>
+            <span style="font-size: 9px; color: var(--accent); font-family: var(--fm)">Rank #${team.lead.pvp_rank}</span>
+          </div>
+          <!-- SWITCH -->
+          <div style="display: flex; flex-direction: column; align-items: center; text-align: center; background: var(--bg2); padding: 8px; border-radius: 6px; border: 1px solid var(--border); overflow: hidden;">
+            <span style="font-size: 8px; color: var(--muted); text-transform: uppercase; font-weight: 700;">Bezpieczna Zmiana</span>
+            <b style="font-size: 11px; color: var(--text); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;" title="${team.switch.name}">${team.switch.name}</b>
+            <span style="font-size: 10px; color: var(--muted); margin-top: 2px; font-family: var(--fm)">CP ${team.switch.cp}</span>
+            <span style="font-size: 9px; color: var(--accent); font-family: var(--fm)">Rank #${team.switch.pvp_rank}</span>
+          </div>
+          <!-- CLOSER -->
+          <div style="display: flex; flex-direction: column; align-items: center; text-align: center; background: var(--bg2); padding: 8px; border-radius: 6px; border: 1px solid var(--border); overflow: hidden;">
+            <span style="font-size: 8px; color: var(--muted); text-transform: uppercase; font-weight: 700;">Closer</span>
+            <b style="font-size: 11px; color: var(--text); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;" title="${team.closer.name}">${team.closer.name}</b>
+            <span style="font-size: 10px; color: var(--muted); margin-top: 2px; font-family: var(--fm)">CP ${team.closer.cp}</span>
+            <span style="font-size: 9px; color: var(--accent); font-family: var(--fm)">Rank #${team.closer.pvp_rank}</span>
+          </div>
+        </div>
+        
+        <div style="font-size: 11px; color: var(--muted); font-style: italic; line-height: 1.4; margin-top: 2px;">
+          💡 ${team.description}
+        </div>
+      </div>
+    `;
+  }).join("");
+  
+  $("pvp-local-teams-card").style.display = "block";
 }
 
 function pvpRankBadge(rank, total, pct) {

@@ -1,0 +1,31 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.1.0] - 2026-07-14
+
+### Added
+- **Live Event Calendar**: Integrated active, upcoming, and ended events calendar sourced from ScrapedDuck API. Includes dynamic countdown timers and meta Pokémon filters.
+- **AI PvP Team Builder**: Added AI-powered analysis for PvP teams (Great, Ultra, and Master League) analyzing the user's top 25 candidate Pokémon, identifying roles (Lead, Safe Switch, Closer), synergies, and missing counters (with SQLite database caching).
+- **Local PvP Team Suggestions**: Added fully offline rule-based 3-Pokémon team builder that assigns roles and avoids type overlap (no AI API keys required).
+- **Player Profiles Dashboard**: Extracted player information (Username, level, PokéCoins, Stardust, distance walked) and PvP league battle stats/win rates from PGSharp account file uploads.
+- **Language Switcher**: Implemented dual-flag dynamic translation switcher (`🇺🇸` / `🇵🇱`) for sidebars, tabs, tables, tooltips, and suggestions.
+
+### Changed
+- **Suggested PvP Teams layout**: Moved the suggested teams card to the top of the PvP tab (above the candidates list) for better visibility.
+
+### Fixed
+- **Master League Candidates Limit**: Fixed a bug where Master League candidates list returned empty due to an incorrect 20k CP minimum threshold filtering. Updated threshold to 1500 CP for unlimited leagues.
+
+## [1.0.0] - 2026-07-13
+
+### Added
+- Core PokéGO Analyzer application.
+- PGSStats.json file uploads and local parser.
+- PvP IV Rank calculations (Stat Product formula).
+- Raids PvE attackers scoring (DPS×TDO estimation).
+- SQLite storage database for session state recovery.
+- Beautiful dark-themed dashboard.

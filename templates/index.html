@@ -455,7 +455,10 @@ tr:hover td{background:rgba(163,240,80,.025)}
 <!-- ── Sidebar ────────────────────────────────────────────────────── -->
 <aside id="sidebar">
   <div class="sidebar-header">
-    <div class="logo">⚡ PokéGO <span>Analyzer</span></div>
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 8px;">
+      <div class="logo">⚡ PokéGO <span>Analyzer</span></div>
+      <button id="btn-lang" class="btn btn-outline btn-xs" style="padding: 2px 6px; font-size: 11px; margin-top: -4px;">🇵🇱 PL</button>
+    </div>
     <p id="header-sub">Wgraj PGSStats.json żeby zacząć</p>
     <div id="upload-small">
       <div class="btn btn-outline btn-sm">↺ Zmień plik</div>
@@ -650,6 +653,11 @@ tr:hover td{background:rgba(163,240,80,.025)}
         <button class="tab-sub" data-league="ML">🟡 Master League</button>
       </div>
       <div class="alert alert-info">Ranking uwzględnia CP przy limicie ligi, bulk (def×sta), tier listę meta. Posortowane od najlepszego.</div>
+      <!-- Local PvP Team Suggestions -->
+      <div id="pvp-local-teams-card" style="display: none; margin-bottom: 20px;" class="card">
+        <div class="card-title">Sugerowane składy PvP (kalkulacja lokalna)</div>
+        <div id="pvp-local-teams-list" style="display: flex; flex-direction: column; gap: 12px;"></div>
+      </div>
       <div class="tbl-wrap">
         <table>
           <thead><tr>
@@ -658,11 +666,6 @@ tr:hover td{background:rgba(163,240,80,.025)}
           </tr></thead>
           <tbody id="pvp-tbody"></tbody>
         </table>
-      </div>
-      <!-- Local PvP Team Suggestions -->
-      <div id="pvp-local-teams-card" style="display: none; margin-bottom: 20px;" class="card">
-        <div class="card-title">Sugerowane składy PvP (kalkulacja lokalna)</div>
-        <div id="pvp-local-teams-list" style="display: flex; flex-direction: column; gap: 12px;"></div>
       </div>
 
       <button class="btn btn-primary" id="btn-analyze-pvp" style="margin-top: 16px;">🤖 Analiza AI — składy PvP</button>
@@ -1615,31 +1618,40 @@ function renderLocalTeams(teams) {
   const leagueColor = { GL: "var(--cyan)", UL: "var(--purple)", ML: "var(--yellow)" }[_pvpLeague];
   
   container.innerHTML = teams.map((team, idx) => {
+    const isPl = _lang === "pl";
+    const leadLbl = isPl ? "Lider (Lead)" : "Lead";
+    const switchLbl = isPl ? "Bezpieczna Zmiana" : "Safe Switch";
+    const closerLbl = isPl ? "Closer" : "Closer";
+    const teamLbl = isPl ? `Skład #${idx + 1}` : `Team #${idx + 1}`;
+    const descText = isPl 
+      ? `Zbalansowany skład z liderem <b>${team.lead.name}</b>, bezpieczną zmianą <b>${team.switch.name}</b> i zamykającym <b>${team.closer.name}</b>.`
+      : `Balanced team with <b>${team.lead.name}</b> as lead, <b>${team.switch.name}</b> as safe switch, and <b>${team.closer.name}</b> as closer.`;
+
     return `
       <div style="background: var(--bg3); padding: 12px; border-radius: 8px; border: 1px solid var(--border2); display: flex; flex-direction: column; gap: 8px;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <b style="color: var(--text); font-size: 13px;">Skład #${idx + 1}</b>
+          <b style="color: var(--text); font-size: 13px;">${teamLbl}</b>
           <span style="font-size: 11px; color: ${leagueColor}; font-weight: 700; font-family: var(--fm);">${_pvpLeague}</span>
         </div>
         
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px;">
           <!-- LEAD -->
           <div style="display: flex; flex-direction: column; align-items: center; text-align: center; background: var(--bg2); padding: 8px; border-radius: 6px; border: 1px solid var(--border); overflow: hidden;">
-            <span style="font-size: 8px; color: var(--muted); text-transform: uppercase; font-weight: 700;">Lider (Lead)</span>
+            <span style="font-size: 8px; color: var(--muted); text-transform: uppercase; font-weight: 700;">${leadLbl}</span>
             <b style="font-size: 11px; color: var(--text); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;" title="${team.lead.name}">${team.lead.name}</b>
             <span style="font-size: 10px; color: var(--muted); margin-top: 2px; font-family: var(--fm)">CP ${team.lead.cp}</span>
             <span style="font-size: 9px; color: var(--accent); font-family: var(--fm)">Rank #${team.lead.pvp_rank}</span>
           </div>
           <!-- SWITCH -->
           <div style="display: flex; flex-direction: column; align-items: center; text-align: center; background: var(--bg2); padding: 8px; border-radius: 6px; border: 1px solid var(--border); overflow: hidden;">
-            <span style="font-size: 8px; color: var(--muted); text-transform: uppercase; font-weight: 700;">Bezpieczna Zmiana</span>
+            <span style="font-size: 8px; color: var(--muted); text-transform: uppercase; font-weight: 700;">${switchLbl}</span>
             <b style="font-size: 11px; color: var(--text); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;" title="${team.switch.name}">${team.switch.name}</b>
             <span style="font-size: 10px; color: var(--muted); margin-top: 2px; font-family: var(--fm)">CP ${team.switch.cp}</span>
             <span style="font-size: 9px; color: var(--accent); font-family: var(--fm)">Rank #${team.switch.pvp_rank}</span>
           </div>
           <!-- CLOSER -->
           <div style="display: flex; flex-direction: column; align-items: center; text-align: center; background: var(--bg2); padding: 8px; border-radius: 6px; border: 1px solid var(--border); overflow: hidden;">
-            <span style="font-size: 8px; color: var(--muted); text-transform: uppercase; font-weight: 700;">Closer</span>
+            <span style="font-size: 8px; color: var(--muted); text-transform: uppercase; font-weight: 700;">${closerLbl}</span>
             <b style="font-size: 11px; color: var(--text); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;" title="${team.closer.name}">${team.closer.name}</b>
             <span style="font-size: 10px; color: var(--muted); margin-top: 2px; font-family: var(--fm)">CP ${team.closer.cp}</span>
             <span style="font-size: 9px; color: var(--accent); font-family: var(--fm)">Rank #${team.closer.pvp_rank}</span>
@@ -1647,7 +1659,7 @@ function renderLocalTeams(teams) {
         </div>
         
         <div style="font-size: 11px; color: var(--muted); font-style: italic; line-height: 1.4; margin-top: 2px;">
-          💡 ${team.description}
+          💡 ${descText}
         </div>
       </div>
     `;
@@ -1822,6 +1834,283 @@ $("btn-save-cfg").addEventListener("click", async () => {
   saved.style.display = "inline";
   setTimeout(() => { saved.style.display = "none"; }, 2500);
 });
+
+// ── Translations ─────────────────────────────────────────────────────────────
+let _lang = localStorage.getItem("pogo_lang") || "pl";
+
+const translations = {
+  pl: {
+    headerSub: "Wgraj PGSStats.json żeby zacząć",
+    changeFile: "↺ Zmień plik",
+    totalPoke: "Pokemon",
+    shinyPoke: "✨ Shiny",
+    hundoPoke: "💯 Hundo",
+    shadowPoke: "Shadow",
+    luckyPoke: "🍀 Lucky",
+    dustPoke: "⭐ Stardust",
+    btnAnalyzeItems: "🤖 Analiza AI — co i na kogo",
+    btnAnalyzePvp: "🤖 Analiza AI — składy PvP",
+    btnSaveCfg: "Zapisz ustawienia",
+    cfgSaved: "Zapisano!"
+  },
+  en: {
+    headerSub: "Upload PGSStats.json to begin",
+    changeFile: "↺ Change file",
+    totalPoke: "Pokémon",
+    shinyPoke: "✨ Shiny",
+    hundoPoke: "💯 Hundo",
+    shadowPoke: "Shadow",
+    luckyPoke: "🍀 Lucky",
+    dustPoke: "⭐ Stardust",
+    btnAnalyzeItems: "🤖 AI Analysis — what to use on whom",
+    btnAnalyzePvp: "🤖 AI Analysis — PvP Teams",
+    btnSaveCfg: "Save settings",
+    cfgSaved: "Saved!"
+  }
+};
+
+const thMap = {
+  pl: {
+    "Pokemon (pre-evo)": "Pokemon (pre-evo)", "→ Ewolucja": "→ Ewolucja", "Docelowy Pokemon": "Docelowy Pokemon",
+    "Docelowy Tier": "Docelowy Tier", "Lvl Przed": "Lvl Przed", "Lvl Po": "Lvl Po", "Koszt": "Koszt",
+    "Ruch Legacy": "Ruch Legacy", "Typ ruchu": "Typ ruchu", "Pokemon": "Pokemon", "Akt. CP": "Akt. CP",
+    "CP w lidze": "CP w lidze", "Lvl": "Lvl", "IV%": "IV%", "A/D/S": "A/D/S", "Max CP": "Max CP",
+    "Tiers": "Tiers", "Tagi": "Tagi", "AI": "AI", "Rank IV": "Rank IV", "Est. DPS×TDO": "Est. DPS×TDO",
+    "IV teraz": "IV teraz", "IV po ocz.": "IV po ocz.", "A/D/S → po oczyszcz.": "A/D/S → po oczyszcz."
+  },
+  en: {
+    "Pokemon (pre-evo)": "Pokémon (pre-evo)", "→ Ewolucja": "→ Evolution", "Docelowy Pokemon": "Target Pokémon",
+    "Docelowy Tier": "Target Tier", "Lvl Przed": "Lvl Before", "Lvl Po": "Lvl After", "Koszt": "Cost",
+    "Ruch Legacy": "Legacy Move", "Typ ruchu": "Move Type", "Pokemon": "Pokémon", "Akt. CP": "Current CP",
+    "CP w lidze": "CP in League", "Lvl": "Lvl", "IV%": "IV%", "A/D/S": "A/D/S", "Max CP": "Max CP",
+    "Tiers": "Tiers", "Tagi": "Tags", "AI": "AI", "Rank IV": "Rank IV", "Est. DPS×TDO": "Est. DPS×TDO",
+    "IV teraz": "Current IV", "IV po ocz.": "IV after Pur.", "A/D/S → po oczyszcz.": "A/D/S → after Pur."
+  }
+};
+
+const optionMap = {
+  pl: {
+    "Wszystkie": "Wszystkie", "100% IV (Hundo)": "100% IV (Hundo)", "Błyszczące (Shiny)": "Błyszczące (Shiny)",
+    "Cieniste (Shadow)": "Cieniste (Shadow)", "Szczęśliwe (Lucky)": "Szczęśliwe (Lucky)", "Tylko Tier S": "Tylko Tier S",
+    "Tylko Tier A": "Tylko Tier A", "Do transferu (Trash)": "Do transferu (Trash)", "Złapane 2016-2018": "Złapane 2016-2018",
+    "Złapane 2019-2022": "Złapane 2019-2022", "PvP GL Top 250": "PvP GL Top 250", "Sortuj po CP": "Sortuj po CP",
+    "Sortuj po IV%": "Sortuj po IV%", "Sortuj po Poziomie": "Sortuj po Poziomie", "Sortuj po Nazwie": "Sortuj po Nazwie",
+    "Wszystkie Pokemony": "Wszystkie Pokemony", "Wartościowe (S/A/B)": "Wartościowe (S/A/B)", "🟢 Aktywne": "🟢 Aktywne",
+    "🔵 Nadchodzące": "🔵 Nadchodzące", "⬜ Zakończone": "⬜ Zakończone"
+  },
+  en: {
+    "Wszystkie": "All", "100% IV (Hundo)": "100% IV (Hundo)", "Błyszczące (Shiny)": "Shiny",
+    "Cieniste (Shadow)": "Shadow", "Szczęśliwe (Lucky)": "Lucky", "Tylko Tier S": "Only Tier S",
+    "Tylko Tier A": "Only Tier A", "Do transferu (Trash)": "To transfer (Trash)", "Złapane 2016-2018": "Caught 2016-2018",
+    "Złapane 2019-2022": "Caught 2019-2022", "PvP GL Top 250": "PvP GL Top 250", "Sortuj po CP": "Sort by CP",
+    "Sortuj po IV%": "Sort by IV%", "Sortuj po Poziomie": "Sort by Level", "Sortuj po Nazwie": "Sort by Name",
+    "Wszystkie Pokemony": "All Pokémon", "Wartościowe (S/A/B)": "Valuable (S/A/B)", "🟢 Aktywne": "🟢 Active",
+    "🔵 Nadchodzące": "🔵 Upcoming", "⬜ Zakończone": "⬜ Ended"
+  }
+};
+
+const chipMap = {
+  pl: { "Pokemon": "Pokemon ", "Shiny": " Shiny ", "Hundo": " Hundo ", "Shadow": " Shadow ", "Lucky": " Lucky ", "Stardust": " Stardust " },
+  en: { "Pokemon": "Pokémon ", "Shiny": " Shiny ", "Hundo": " Hundo ", "Shadow": " Shadow ", "Lucky": " Lucky ", "Stardust": " Stardust " }
+};
+
+const pvpLabelMap = {
+  pl: {
+    "Ranga Sezonu": "Ranga Sezonu", "Wskaźnik Wygranych": "Wskaźnik Wygranych",
+    "Najdłuższa seria": "Najdłuższa seria", "Zarobiony Stardust": "Zarobiony Stardust"
+  },
+  en: {
+    "Ranga Sezonu": "Season Rank", "Wskaźnik Wygranych": "Win Rate",
+    "Najdłuższa seria": "Longest Streak", "Zarobiony Stardust": "Stardust Earned"
+  }
+};
+
+const devCards = {
+  pl: {
+    evolveTitle: "🥚 Do ewoluowania",
+    evolveDesc: "Pokemony z IV ≥ 80%, których końcowa forma jest meta (tier S lub A). Ewolucja nie zmienia IV — warto ewoluować zanim będziesz power-upował.",
+    powerupTitle: "⚡ Do ulepszenia (Power Up)",
+    powerupDesc: "Meta pokemon (tier S/A) z IV ≥ 80% poniżej poziomu 40. Inwestycja w stardust opłaca się tylko dla meta okazów.",
+    purifyTitle: "✨ Do oczyszczenia (Purify Shadow)",
+    purifyDesc: "Shadow pokemony, których IV po oczyszczeniu (+2 do każdego, max 15) osiągnie ≥ 80%. Shadow bonus (+20% ataku) vs. lepsze IV — zapytaj AI co bardziej się opłaca.",
+    etmTitle: "⚔️ Kandydaci na Elite TM",
+    etmDesc: "Meta pokemon (tier S/A) na poziomie ≥ 35 — warte sprawdzenia czy mają optymalne ataki. Elite Fast/Charged TM pozwala nauczyć legacy lub ekskluzywnych ruchów."
+  },
+  en: {
+    evolveTitle: "🥚 To Evolve",
+    evolveDesc: "Pokémon with IV ≥ 80% whose final form is meta (tier S or A). Evolution does not change IVs — it is best to evolve before powering up.",
+    powerupTitle: "⚡ To Power Up",
+    powerupDesc: "Meta Pokémon (tier S/A) with IV ≥ 80% below level 40. Investing in stardust is only worth it for meta specimens.",
+    purifyTitle: "✨ To Purify (Shadow)",
+    purifyDesc: "Shadow Pokémon whose IV after purification (+2 to each stat, max 15) will reach ≥ 80%. Shadow bonus (+20% attack) vs. better IVs — ask AI what is more worth it.",
+    etmTitle: "⚔️ Elite TM Candidates",
+    etmDesc: "Meta Pokémon (tier S/A) at level ≥ 35 — worth checking if they have optimal moves. Elite Fast/Charged TM allows learning legacy or exclusive moves."
+  }
+};
+
+function applyLanguage() {
+  const t = translations[_lang];
+  $("btn-lang").textContent = _lang === "pl" ? "🇵🇱 PL" : "🇬🇧 EN";
+
+  const ids = {
+    "header-sub": t.headerSub,
+    "btn-analyze-items": t.btnAnalyzeItems,
+    "btn-analyze-pvp": t.btnAnalyzePvp,
+    "btn-save-cfg": t.btnSaveCfg,
+    "cfg-saved": t.cfgSaved
+  };
+  for (const [id, text] of Object.entries(ids)) {
+    const el = $(id);
+    if (el && text) el.textContent = text;
+  }
+  
+  const uploadSub = document.querySelector(".upload-sub");
+  if (uploadSub) uploadSub.innerHTML = _lang === "pl" 
+    ? "Wgraj plik <strong>PGSStats.json</strong> z aplikacji PGSharp<br>aby przeanalizować swoje konto"
+    : "Upload <strong>PGSStats.json</strong> file from PGSharp app<br>to analyze your account";
+    
+  const uploadTag = document.querySelector(".upload-tag");
+  if (uploadTag) uploadTag.textContent = _lang === "pl"
+    ? "📌 Plik czytany lokalnie — dane nie opuszczają maszyny"
+    : "📌 File processed locally — data does not leave your machine";
+
+  const uploadSmallBtn = document.querySelector("#upload-small .btn");
+  if (uploadSmallBtn) uploadSmallBtn.textContent = t.changeFile;
+  
+  const sidebarHint = document.querySelector(".sidebar-hint");
+  if (sidebarHint) sidebarHint.textContent = _lang === "pl" ? "Wgraj plik JSON żeby zacząć" : "Upload JSON file to begin";
+
+  const tabNames = {
+    pokemon: _lang === "pl" ? "🎮 Pokemony" : "🎮 Pokémon",
+    raid: _lang === "pl" ? "⚔️ Raidy" : "⚔️ Raids",
+    pvp: "🏆 PvP",
+    items: _lang === "pl" ? "🎒 Ekwipunek" : "🎒 Inventory",
+    events: _lang === "pl" ? "📅 Eventy" : "📅 Events",
+    tiers: _lang === "pl" ? "🥇 Tier Lista" : "🥇 Tier List",
+    develop: _lang === "pl" ? "🔧 Rozwój" : "🔧 Develop",
+    settings: _lang === "pl" ? "⚙️ Ustawienia" : "⚙️ Settings"
+  };
+  $$(".tab").forEach(tab => {
+    const tabKey = tab.dataset.tab;
+    if (tabNames[tabKey]) {
+      if (tabKey === "pokemon") {
+        tab.innerHTML = `${tabNames[tabKey]} <span class="tab-badge" id="tb-poke">${S.pokemons.length || ""}</span>`;
+      } else {
+        tab.textContent = tabNames[tabKey];
+      }
+    }
+  });
+
+  const panelTitles = {
+    "panel-pokemon": _lang === "pl" ? "🎮 Pokemony" : "🎮 Pokémon",
+    "panel-raid": _lang === "pl" ? "⚔️ Raidy" : "⚔️ Raids",
+    "panel-pvp": "🏆 PvP",
+    "panel-items": _lang === "pl" ? "🎒 Ekwipunek" : "🎒 Inventory",
+    "panel-events": _lang === "pl" ? "📅 Eventy" : "📅 Events",
+    "panel-tiers": _lang === "pl" ? "🥇 Tier Lista" : "🥇 Tier List",
+    "panel-develop": _lang === "pl" ? "🔧 Rozwój" : "🔧 Develop",
+    "panel-settings": _lang === "pl" ? "⚙️ Ustawienia" : "⚙️ Settings"
+  };
+  for (const [id, title] of Object.entries(panelTitles)) {
+    const el = $(id);
+    if (el) {
+      const pTitle = el.querySelector(".panel-title");
+      if (pTitle) pTitle.textContent = title;
+    }
+  }
+
+  $$("th").forEach(th => {
+    const text = th.textContent.trim();
+    const key = Object.keys(thMap.pl).find(k => thMap.pl[k] === text);
+    if (key && thMap[_lang][key]) {
+      th.textContent = thMap[_lang][key];
+    }
+  });
+
+  $$("option").forEach(opt => {
+    const text = opt.textContent.trim();
+    const key = Object.keys(optionMap.pl).find(k => optionMap.pl[k] === text);
+    if (key && optionMap[_lang][key]) {
+      opt.textContent = optionMap[_lang][key];
+    }
+  });
+
+  $$(".stat-chip").forEach(chip => {
+    const textNode = Array.from(chip.childNodes).find(n => n.nodeType === Node.TEXT_NODE);
+    if (textNode) {
+      const text = textNode.textContent.trim();
+      for (const [k, v] of Object.entries(chipMap.pl)) {
+        if (text.includes(k)) {
+          textNode.textContent = chipMap[_lang][k];
+          break;
+        }
+      }
+    }
+  });
+
+  $$("#pvp-stats-card div").forEach(div => {
+    const text = div.textContent.trim();
+    if (pvpLabelMap.pl[text]) {
+      div.textContent = pvpLabelMap[_lang][text];
+    }
+  });
+  
+  const pvpLocalTitle = document.querySelector("#pvp-local-teams-card .card-title");
+  if (pvpLocalTitle) pvpLocalTitle.textContent = _lang === "pl" ? "Sugerowane składy PvP (kalkulacja lokalna)" : "Suggested PvP Teams (local calculation)";
+
+  const pvpStatsTitle = document.querySelector("#pvp-stats-card .card-title");
+  if (pvpStatsTitle) pvpStatsTitle.textContent = _lang === "pl" ? "Twoje statystyki pojedynków PvP" : "Your PvP Battle Statistics";
+
+  const pvpAlert = document.querySelector("#panel-pvp .alert-info");
+  if (pvpAlert) pvpAlert.textContent = _lang === "pl" 
+    ? "Ranking uwzględnia CP przy limicie ligi, bulk (def×sta), tier listę meta. Posortowane od najlepszego."
+    : "Ranking takes into account CP at the league limit, bulk (def×sta), and meta tier list. Sorted from best to worst.";
+    
+  const raidAlert = document.querySelector("#panel-raid .alert-info");
+  if (raidAlert) raidAlert.textContent = _lang === "pl"
+    ? "Najlepsi atakujący do raidów PvE z Twojego plecaka (kalkulacja DPS×TDO)."
+    : "Best PvE raid attackers from your box (DPS×TDO calculation).";
+
+  const devEvolveTitle = document.querySelector("#panel-develop .card:nth-of-type(1) .card-title");
+  if (devEvolveTitle) devEvolveTitle.textContent = devCards[_lang].evolveTitle;
+  const devEvolveDesc = document.querySelector("#panel-develop .card:nth-of-type(1) p");
+  if (devEvolveDesc) devEvolveDesc.textContent = devCards[_lang].evolveDesc;
+
+  const devPowerupTitle = document.querySelector("#panel-develop .card:nth-of-type(2) .card-title");
+  if (devPowerupTitle) devPowerupTitle.textContent = devCards[_lang].powerupTitle;
+  const devPowerupDesc = document.querySelector("#panel-develop .card:nth-of-type(2) p");
+  if (devPowerupDesc) devPowerupDesc.textContent = devCards[_lang].powerupDesc;
+
+  const devPurifyTitle = document.querySelector("#panel-develop .card:nth-of-type(3) .card-title");
+  if (devPurifyTitle) devPurifyTitle.textContent = devCards[_lang].purifyTitle;
+  const devPurifyDesc = document.querySelector("#panel-develop .card:nth-of-type(3) p");
+  if (devPurifyDesc) devPurifyDesc.textContent = devCards[_lang].purifyDesc;
+
+  const devEtmTitle = document.querySelector("#panel-develop .card:nth-of-type(4) .card-title");
+  if (devEtmTitle) devEtmTitle.textContent = devCards[_lang].etmTitle;
+  const devEtmDesc = document.querySelector("#panel-develop .card:nth-of-type(4) p");
+  if (devEtmDesc) devEtmDesc.textContent = devCards[_lang].etmDesc;
+
+  $("poke-search").placeholder = _lang === "pl" ? "Szukaj nazwy…" : "Search name…";
+  $("events-search").placeholder = _lang === "pl" ? "Szukaj eventu lub pokemona..." : "Search event or Pokémon...";
+
+  if (S.pokemons && S.pokemons.length > 0) {
+    renderPokemons();
+    renderRaid();
+    renderPvP();
+    renderLocalTeams(_pvpLocalTeams[_pvpLeague]);
+    renderDevelop();
+    renderEvents();
+  }
+}
+
+$("btn-lang").addEventListener("click", () => {
+  _lang = _lang === "pl" ? "en" : "pl";
+  localStorage.setItem("pogo_lang", _lang);
+  applyLanguage();
+});
+
+applyLanguage();
 
 // ── Auto-restore on page load ─────────────────────────────────────────────────
 (async function checkRestoredState() {

@@ -205,6 +205,8 @@ tr:hover td{background:rgba(163,240,80,.025)}
 .badge-s     {background:rgba(255,87,87,.15); color:#ff5757;border:1px solid rgba(255,87,87,.3)}
 .badge-a     {background:rgba(255,140,66,.15);color:#ff8c42;border:1px solid rgba(255,140,66,.3)}
 .badge-b     {background:rgba(77,240,192,.12);color:var(--cyan);border:1px solid rgba(77,240,192,.3)}
+.badge-c     {background:rgba(57,232,122,.12);color:var(--green);border:1px solid rgba(57,232,122,.3)}
+.badge-d     {background:rgba(100,116,139,.12);color:#94a3b8;border:1px solid rgba(100,116,139,.3)}
 .badge-shiny {background:rgba(255,214,0,.1);  color:var(--yellow);border:1px solid rgba(255,214,0,.3)}
 .badge-shadow{background:rgba(181,157,250,.1);color:var(--purple);border:1px solid rgba(181,157,250,.3)}
 .badge-hundo {background:rgba(57,232,122,.1); color:var(--green);border:1px solid rgba(57,232,122,.3)}
@@ -888,7 +890,10 @@ function ivClass(iv) {
 
 function tierBadge(tier) {
   if (!tier) return "";
-  const cls = { S: "badge-s", A: "badge-a", B: "badge-b" }[tier] || "badge";
+  const parts = tier.split(" ");
+  const tierVal = parts[parts.length - 1] || "";
+  const firstChar = tierVal.charAt(0).toUpperCase();
+  const cls = { S: "badge-s", A: "badge-a", B: "badge-b", C: "badge-c", D: "badge-d" }[firstChar] || "badge";
   return `<span class="badge ${cls}">${tier}</span>`;
 }
 

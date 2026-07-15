@@ -22,6 +22,8 @@ a projekt stosuje się do [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 - **Rozstrzyganie Remisów Iloczynu Statystyk (Tie-Breaker)**: Wdrożono algorytm rozstrzygania remisów identycznego stat productu na korzyść kombinacji z wyższym CP, a następnie wyższym IV obrony i zdrowia, uzyskując 100% zgodności z rankingami PvPoke.
 - **Wyświetlanie Ataków w Raidach**: Wdrożono wyświetlanie posiadanych szybkich i ładowanych ataków w postaci kolorowych plakietek pod nazwą każdego Pokémona w tabeli kandydatów na rajdy. Dodano kolumnę „Najlepszy zestaw (PvE)” z optymalnymi ruchami oraz graficznym oznaczeniem statusu (✔️/⚠️) informującym, czy zestaw jest idealny czy wymaga zmiany za pomocą TM.
 - **Interaktywne Sortowanie Kolumn**: Dodano uniwersalny skrypt sortowania tabel po stronie klienta (dla zakładek Pokemony, Raidy, PvP), pozwalający na kliknięcie nagłówków kolumn i sortowanie rosnąco/malejąco według nazwy, CP, poziomu, procentu IV oraz sumy statystyk IV.
+- **Dynamiczne Parsowanie Form Pokémonów**: Usprawniono mechanizm parsowania gatunków, aby automatycznie rozpoznawał i poprawnie formatował złożone formy (np. `Zacian (Crowned Sword)`, `Giratina (Origin)`, `Landorus (Therian)`) z zapisu CamelCase.
+- **Uporządkowanie Listy Wydarzeń**: Wdrożono domyślne sortowanie wydarzeń (najpierw aktywne kończące się najszybciej, następnie nadchodzące zaczynające się najwcześniej, na końcu zakończone). Naprawiono błąd językowy, przez który nadchodzące wydarzenia bez dokładnej liczby dni wyświetlały się jako `Za undefinedd`.
 
 
 

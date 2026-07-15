@@ -173,6 +173,7 @@ def pvp_ideal_ivs(pid: int, cp_limit: int) -> tuple[int, int, int]:
     }) else 0
     
     best_sp = -1.0
+    best_cp = -1
     best_ivs = (0, 0, 0)
     for ia in range(iv_floor, 16):
         ea = ba + ia
@@ -183,9 +184,17 @@ def pvp_ideal_ivs(pid: int, cp_limit: int) -> tuple[int, int, int]:
                 idx = _best_cpm_idx(ea, ed, es, cp_limit)
                 if idx >= 0:
                     sp = _stat_product(ea, ed, es, _CPM_VALUES[idx])
+                    cp = math.floor(ea * math.sqrt(ed) * math.sqrt(es) / 10.0 * _CPM_VALUES[idx] * _CPM_VALUES[idx])
                     if sp > best_sp:
                         best_sp = sp
+                        best_cp = cp
                         best_ivs = (ia, id_, is_)
+                    elif abs(sp - best_sp) < 1e-5:
+                        # Tie-breaker: choose higher CP, then higher Stamina, then higher Defense
+                        if cp > best_cp or (cp == best_cp and is_ > best_ivs[2]) or (cp == best_cp and is_ == best_ivs[2] and id_ > best_ivs[1]):
+                            best_sp = sp
+                            best_cp = cp
+                            best_ivs = (ia, id_, is_)
     return best_ivs
 
 

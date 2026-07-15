@@ -14,3 +14,4 @@ PGSStats.json
 *.csv
 *.deb
 scratch/
+.agents/

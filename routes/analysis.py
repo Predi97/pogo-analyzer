@@ -39,33 +39,18 @@ def api_raid_candidates():
             
         species_name = p["name"].lower().replace(" (shadow)", "").replace(" (purified)", "")
         best_pve = get_best_pve_moveset(species_name)
-        pve_optimal = []
-        pve_standard = []
+        pve_combos = []
         if best_pve:
-            elite_fast = best_pve.get("elite_fast", [])
-            elite_charged = best_pve.get("elite_charged", [])
-            
-            best_tup = best_pve.get("best")
-            if best_tup:
-                bf_id, bc_id, _ = best_tup
-                bf = MOVES.get(bf_id)
-                bc = MOVES.get(bc_id)
-                if bf:
-                    name = bf["name"] + "*" if bf_id in elite_fast else bf["name"]
-                    pve_optimal.append(name)
-                if bc:
-                    name = bc["name"] + "*" if bc_id in elite_charged else bc["name"]
-                    pve_optimal.append(name)
-                    
-            std_tup = best_pve.get("standard")
-            if std_tup:
-                sf_id, sc_id, _ = std_tup
-                sf = MOVES.get(sf_id)
-                sc = MOVES.get(sc_id)
-                if sf:
-                    pve_standard.append(sf["name"])
-                if sc:
-                    pve_standard.append(sc["name"])
+            for combo in best_pve:
+                f_name = combo["fast_name"] + "*" if combo["fast_elite"] else combo["fast_name"]
+                c_name = combo["charged_name"] + "*" if combo["charged_elite"] else combo["charged_name"]
+                pve_combos.append({
+                    "fast_name": f_name,
+                    "fast_type": combo["fast_type"],
+                    "charged_name": c_name,
+                    "charged_type": combo["charged_type"],
+                    "dps": combo["dps"]
+                })
 
         tier_data = _tier_for(p["name"], tiers)
         scored.append({
@@ -81,8 +66,7 @@ def api_raid_candidates():
             "move3_name":   m3["name"] if m3 else "",
             "move3_type":   m3["type"] if m3 else "",
             "curr_moves":   curr_moves,
-            "pve_optimal":  pve_optimal,
-            "pve_standard": pve_standard
+            "pve_combos":   pve_combos
         })
     scored.sort(key=lambda x: -x["raid_score"])
     return jsonify(scored[:60])
@@ -367,18 +351,18 @@ def api_develop_candidates():
                             pvp_warn.append(f"Ładowany: {m['name']} (Elite)")
                             
                 best_pve = get_best_pve_moveset(species_name)
-                if best_pve and best_pve.get("best"):
-                    bf_id, bc_id, _ = best_pve["best"]
-                    bf = MOVES.get(bf_id)
-                    bc = MOVES.get(bc_id)
-                    if bf:
-                        pve_opt.append(bf["name"])
-                        if bf_id in elite_fast and m1_name != bf["name"]:
-                            pve_warn.append(f"Szybki: {bf['name']} (Elite)")
-                    if bc:
-                        pve_opt.append(bc["name"])
-                        if bc_id in elite_charged and m2_name != bc["name"] and m3_name != bc["name"]:
-                            pve_warn.append(f"Ładowany: {bc['name']} (Elite)")
+                if best_pve and len(best_pve) > 0:
+                    bf_name = best_pve[0]["fast_name"]
+                    bc_name = best_pve[0]["charged_name"]
+                    bf_elite = best_pve[0]["fast_elite"]
+                    bc_elite = best_pve[0]["charged_elite"]
+                    
+                    pve_opt.append(bf_name)
+                    if bf_elite and m1_name != bf_name:
+                        pve_warn.append(f"Szybki: {bf_name} (Elite)")
+                    pve_opt.append(bc_name)
+                    if bc_elite and m2_name != bc_name and m3_name != bc_name:
+                        pve_warn.append(f"Ładowany: {bc_name} (Elite)")
                             
             elite_tm.append({
                 **p,

@@ -488,6 +488,30 @@ tr:hover td{background:rgba(163,240,80,.025)}
 .team-mystic-bg   { background: #3b82f6 !important; color: #fff !important; }
 .team-valor-bg    { background: #ef4444 !important; color: #fff !important; }
 .team-instinct-bg { background: #eab308 !important; color: #000 !important; }
+
+/* ── Custom Tooltips ─────────────────────────────────────────────────── */
+.custom-tooltip {
+  position: absolute;
+  background: var(--bg4);
+  color: var(--text);
+  border: 1px solid rgba(163,240,80,.4);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 11px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.1s ease, transform 0.1s ease;
+  z-index: 10000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  font-family: var(--fb);
+  max-width: 250px;
+  line-height: 1.4;
+  transform: translateY(4px);
+}
+.custom-tooltip.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
 </style>
 </head>
 <body>
@@ -626,15 +650,15 @@ tr:hover td{background:rgba(163,240,80,.025)}
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)">
           <span id="lbl-tags-lbl" style="font-weight:700;font-family:var(--fh);font-size:10px;text-transform:uppercase;letter-spacing:.8px">Tagi:</span>
-          <span class="badge badge-shiny" title="Shiny pokemon">✨ Shiny</span>
-          <span class="badge badge-shadow" title="Shadow pokemon — +20% ataku">Shadow</span>
-          <span class="badge badge-hundo" title="100% IV — idealne statystyki">💯 Hundo</span>
-          <span class="badge badge-lucky" title="Lucky pokemon — tańszy power-up">🍀 Lucky</span>
-          <span class="badge badge-event" title="Pokemon pojawia się w aktywnym lub nadchodzącym evencie">📅 Event</span>
+          <span class="badge badge-shiny" data-tooltip="Shiny pokemon">✨ Shiny</span>
+          <span class="badge badge-shadow" data-tooltip="Shadow pokemon — +20% ataku">Shadow</span>
+          <span class="badge badge-hundo" data-tooltip="100% IV — idealne statystyki">💯 Hundo</span>
+          <span class="badge badge-lucky" data-tooltip="Lucky pokemon — tańszy power-up">🍀 Lucky</span>
+          <span class="badge badge-event" data-tooltip="Pokemon pojawia się w aktywnym lub nadchodzącym evencie">📅 Event</span>
         </div>
         <button class="btn btn-outline btn-sm" id="btn-export-csv">📥 Export CSV</button>
-        <a class="btn btn-outline btn-sm" id="btn-raw-csv" href="/api/export/raw-csv" download="pogo_raw_export.csv" title="Pełny eksport 1:1 z PGSStats.json — wszystkie 80 pól + nazwa gatunku">📦 Raw JSON→CSV</a>
-        <a class="btn btn-outline btn-sm" id="btn-inventory-csv" href="/api/export/inventory-csv" download="pogo_inventory.csv" title="Stardust, PokéCoiny, Rare Candy + pełna lista ekwipunku">💰 Ekwipunek CSV</a>
+        <a class="btn btn-outline btn-sm" id="btn-raw-csv" href="/api/export/raw-csv" download="pogo_raw_export.csv" data-tooltip="Pełny eksport 1:1 z PGSStats.json — wszystkie 80 pól + nazwa gatunku">📦 Raw JSON→CSV</a>
+        <a class="btn btn-outline btn-sm" id="btn-inventory-csv" href="/api/export/inventory-csv" download="pogo_inventory.csv" data-tooltip="Stardust, PokéCoiny, Rare Candy + pełna lista ekwipunku">💰 Ekwipunek CSV</a>
       </div>
       <div class="tbl-wrap">
         <table>
@@ -1122,26 +1146,26 @@ function renderPokemons() {
   tbody.innerHTML = list.map(p => {
     const tiers = p.tiers || {};
     const tierBadges = Object.entries(tiers)
-      .map(([cat, t]) => `<span class="badge badge-${t.toLowerCase()}" title="${cat}">${cat.split("_").pop().toUpperCase()} ${t}</span>`)
+      .map(([cat, t]) => `<span class="badge badge-${t.toLowerCase()}" data-tooltip="${cat}">${cat.split("_").pop().toUpperCase()} ${t}</span>`)
       .join("");
     const evTags = (p.event_tags || []).slice(0, 2)
-      .map(ev => `<span class="badge badge-event" title="${ev}">📅</span>`).join("");
+      .map(ev => `<span class="badge badge-event" data-tooltip="${ev}">📅</span>`).join("");
     const tags = [
-      p.shiny  ? `<span class="badge badge-shiny" title="Shiny">✨</span>` : "",
-      p.shadow ? `<span class="badge badge-shadow" title="Shadow (+20% ATK)">Shadow</span>` : "",
-      p.hundo  ? `<span class="badge badge-hundo" title="100% IV">💯</span>` : "",
-      p.lucky  ? `<span class="badge badge-lucky" title="Lucky (tańszy power-up)">🍀</span>` : "",
+      p.shiny  ? `<span class="badge badge-shiny" data-tooltip="Shiny">✨</span>` : "",
+      p.shadow ? `<span class="badge badge-shadow" data-tooltip="Shadow (+20% ATK)">Shadow</span>` : "",
+      p.hundo  ? `<span class="badge badge-hundo" data-tooltip="100% IV">💯</span>` : "",
+      p.lucky  ? `<span class="badge badge-lucky" data-tooltip="Lucky (tańszy power-up)">🍀</span>` : "",
       evTags,
     ].join("");
     const yr = p.year <= 2018 ? "year-old" : p.year <= 2022 ? "year-mid" : "";
     return `<tr>
       <td class="name-cell">
-        ${p.nick ? `<span title="${p.name}">${p.nick}</span>` : p.name}
+        ${p.nick ? `<span data-tooltip="${p.name}">${p.nick}</span>` : p.name}
         ${p.move1_name ? `
         <div class="moves-row">
-          <span class="move-tag type-${p.move1_type}" title="Fast Move">${p.move1_name}</span>
-          ${p.move2_name ? `<span class="move-tag type-${p.move2_type}" title="Charged Move">${p.move2_name}</span>` : ''}
-          ${p.move3_name ? `<span class="move-tag type-${p.move3_type}" title="Second Charged Move">${p.move3_name}</span>` : ''}
+          <span class="move-tag type-${p.move1_type}" data-tooltip="Fast Move">${p.move1_name}</span>
+          ${p.move2_name ? `<span class="move-tag type-${p.move2_type}" data-tooltip="Charged Move">${p.move2_name}</span>` : ''}
+          ${p.move3_name ? `<span class="move-tag type-${p.move3_type}" data-tooltip="Second Charged Move">${p.move3_name}</span>` : ''}
         </div>` : ''}
       </td>
       <td class="cp-cell">${p.cp}</td>
@@ -2371,6 +2395,51 @@ applyLanguage();
       await onUploadSuccess(status.stats, status.player, status.pvp_stats);
     }
   } catch (_) {}
+})();
+
+// ── Custom Tooltips ───────────────────────────────────────────────────────────
+(function initCustomTooltips() {
+  const tooltipEl = document.createElement("div");
+  tooltipEl.id = "custom-tooltip";
+  tooltipEl.className = "custom-tooltip";
+  document.body.appendChild(tooltipEl);
+
+  document.addEventListener("mouseover", (e) => {
+    const target = e.target.closest("[data-tooltip]");
+    if (!target) return;
+    
+    const text = target.getAttribute("data-tooltip");
+    if (!text) return;
+    
+    tooltipEl.innerHTML = text;
+    tooltipEl.classList.add("visible");
+    
+    const rect = target.getBoundingClientRect();
+    const tooltipRect = tooltipEl.getBoundingClientRect();
+    
+    // Position tooltip above the target by default, or below if not enough space
+    let left = rect.left + (rect.width - tooltipRect.width) / 2;
+    let top = rect.top - tooltipRect.height - 8 + window.scrollY;
+    
+    if (top < window.scrollY) {
+      top = rect.bottom + 8 + window.scrollY;
+    }
+    
+    if (left < 8) left = 8;
+    if (left + tooltipRect.width > window.innerWidth - 8) {
+      left = window.innerWidth - tooltipRect.width - 8;
+    }
+    
+    tooltipEl.style.left = `${left}px`;
+    tooltipEl.style.top = `${top}px`;
+  });
+
+  document.addEventListener("mouseout", (e) => {
+    const target = e.target.closest("[data-tooltip]");
+    if (target) {
+      tooltipEl.classList.remove("visible");
+    }
+  });
 })();
 </script>
 </body>

@@ -103,7 +103,10 @@ def load_last_state() -> None:
         if not row:
             return
         raw    = json.loads(row["raw_json"])
-        parsed = parse_pgo_json(raw)
+        if isinstance(raw, dict) and raw.get("source") == "pokegenie":
+            parsed = raw["data"]
+        else:
+            parsed = parse_pgo_json(raw)
         _state["pokemons"]  = parsed["pokemons"]
         _state["items"]     = parsed["items"]
         _state["player"]    = parsed.get("player")

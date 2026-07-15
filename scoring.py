@@ -225,11 +225,14 @@ def get_best_pve_moveset(species_name: str):
     from data.pokemon_db import POKEMON_DB
     from data.moves import MOVES
     
-    clean_name = species_name.lower().split(" (")[0].strip()
-    entry = POKEMON_DB.get(clean_name)
+    # Try exact match first (e.g. "zacian (crowned sword)")
+    entry = POKEMON_DB.get(species_name.lower())
     if not entry:
-        entry = POKEMON_DB.get(species_name.lower())
+        # Fallback to base name (e.g. "zacian")
+        clean_name = species_name.lower().split(" (")[0].strip()
+        entry = POKEMON_DB.get(clean_name)
     if not entry:
+        # Fallback to substring fuzzy match
         matched_key = next((k for k in POKEMON_DB.keys() if k in species_name.lower() or species_name.lower() in k), None)
         if matched_key:
             entry = POKEMON_DB[matched_key]

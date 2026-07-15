@@ -286,16 +286,19 @@ def get_best_pve_moveset(species_name: str):
             time = (f_dur * n) + c_dur
             cycle_dps = damage / time if time > 0 else 0.0
             
+            # Apply a 1.15x type-synergy multiplier if Fast and Charged move types match (PvE meta values matching types)
+            score = cycle_dps * 1.15 if f_move.get("type") == c_move.get("type") else cycle_dps
+            
             # Absolute best evaluation
-            if cycle_dps > best_dps:
-                best_dps = cycle_dps
+            if score > best_dps:
+                best_dps = score
                 best_fast = f_id
                 best_charged = c_id
                 
             # Standard best evaluation
             if not is_f_elite and not is_c_elite:
-                if cycle_dps > std_dps:
-                    std_dps = cycle_dps
+                if score > std_dps:
+                    std_dps = score
                     std_fast = f_id
                     std_charged = c_id
                     

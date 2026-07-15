@@ -40,30 +40,49 @@ def api_raid_candidates():
         species_name = p["name"].lower().replace(" (shadow)", "").replace(" (purified)", "")
         best_pve = get_best_pve_moveset(species_name)
         pve_optimal = []
+        pve_standard = []
         if best_pve:
-            bf_id, bc_id, _ = best_pve
-            bf = MOVES.get(bf_id)
-            bc = MOVES.get(bc_id)
-            if bf:
-                pve_optimal.append(bf["name"])
-            if bc:
-                pve_optimal.append(bc["name"])
+            elite_fast = best_pve.get("elite_fast", [])
+            elite_charged = best_pve.get("elite_charged", [])
+            
+            best_tup = best_pve.get("best")
+            if best_tup:
+                bf_id, bc_id, _ = best_tup
+                bf = MOVES.get(bf_id)
+                bc = MOVES.get(bc_id)
+                if bf:
+                    name = bf["name"] + "*" if bf_id in elite_fast else bf["name"]
+                    pve_optimal.append(name)
+                if bc:
+                    name = bc["name"] + "*" if bc_id in elite_charged else bc["name"]
+                    pve_optimal.append(name)
+                    
+            std_tup = best_pve.get("standard")
+            if std_tup:
+                sf_id, sc_id, _ = std_tup
+                sf = MOVES.get(sf_id)
+                sc = MOVES.get(sc_id)
+                if sf:
+                    pve_standard.append(sf["name"])
+                if sc:
+                    pve_standard.append(sc["name"])
 
         tier_data = _tier_for(p["name"], tiers)
         scored.append({
             **p,
-            "raid_score":  round(score),
-            "max_cp":      max_cp(p["pid"], p["iv_a"], p["iv_d"], p["iv_s"]),
-            "tiers":       tier_data,
-            "best_tier":   _best_tier(tier_data),
-            "move1_name":  m1["name"] if m1 else "",
-            "move1_type":  m1["type"] if m1 else "",
-            "move2_name":  m2["name"] if m2 else "",
-            "move2_type":  m2["type"] if m2 else "",
-            "move3_name":  m3["name"] if m3 else "",
-            "move3_type":  m3["type"] if m3 else "",
-            "curr_moves":  curr_moves,
-            "pve_optimal": pve_optimal
+            "raid_score":   round(score),
+            "max_cp":       max_cp(p["pid"], p["iv_a"], p["iv_d"], p["iv_s"]),
+            "tiers":        tier_data,
+            "best_tier":    _best_tier(tier_data),
+            "move1_name":   m1["name"] if m1 else "",
+            "move1_type":   m1["type"] if m1 else "",
+            "move2_name":   m2["name"] if m2 else "",
+            "move2_type":   m2["type"] if m2 else "",
+            "move3_name":   m3["name"] if m3 else "",
+            "move3_type":   m3["type"] if m3 else "",
+            "curr_moves":   curr_moves,
+            "pve_optimal":  pve_optimal,
+            "pve_standard": pve_standard
         })
     scored.sort(key=lambda x: -x["raid_score"])
     return jsonify(scored[:60])
@@ -348,8 +367,8 @@ def api_develop_candidates():
                             pvp_warn.append(f"Ładowany: {m['name']} (Elite)")
                             
                 best_pve = get_best_pve_moveset(species_name)
-                if best_pve:
-                    bf_id, bc_id, _ = best_pve
+                if best_pve and best_pve.get("best"):
+                    bf_id, bc_id, _ = best_pve["best"]
                     bf = MOVES.get(bf_id)
                     bc = MOVES.get(bc_id)
                     if bf:

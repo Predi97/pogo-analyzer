@@ -224,12 +224,24 @@ def calculate_cp_for_level(pid: int, iv_a: int, iv_d: int, iv_s: int, target_lev
 def get_best_pve_moveset(species_name: str):
     from data.pokemon_db import POKEMON_DB
     from data.moves import MOVES
-    entry = POKEMON_DB.get(species_name.lower())
+    
+    clean_name = species_name.lower().split(" (")[0].strip()
+    entry = POKEMON_DB.get(clean_name)
+    if not entry:
+        entry = POKEMON_DB.get(species_name.lower())
+    if not entry:
+        matched_key = next((k for k in POKEMON_DB.keys() if k in species_name.lower() or species_name.lower() in k), None)
+        if matched_key:
+            entry = POKEMON_DB[matched_key]
+            
     if not entry:
         return None
     
-    fast_pool = entry.get("quick_moves", []) + entry.get("elite_quick_moves", [])
-    charged_pool = entry.get("cinematic_moves", []) + entry.get("elite_cinematic_moves", [])
+    elite_fast = entry.get("elite_quick_moves", [])
+    elite_charged = entry.get("elite_cinematic_moves", [])
+    
+    fast_pool = entry.get("quick_moves", []) + elite_fast
+    charged_pool = entry.get("cinematic_moves", []) + elite_charged
     
     if not fast_pool or not charged_pool:
         return None
@@ -239,6 +251,9 @@ def get_best_pve_moveset(species_name: str):
     best_fast, best_charged = None, None
     best_dps = -1.0
     
+    std_fast, std_charged = None, None
+    std_dps = -1.0
+    
     for f_id in fast_pool:
         f_move = MOVES.get(f_id)
         if not f_move:
@@ -247,6 +262,7 @@ def get_best_pve_moveset(species_name: str):
         f_dur = f_move.get("pve_duration_ms", 0) / 1000.0
         f_energy = f_move.get("pve_energy_delta", 0)
         f_stab = 1.2 if f_move.get("type") in types else 1.0
+        is_f_elite = f_id in elite_fast
         
         for c_id in charged_pool:
             c_move = MOVES.get(c_id)
@@ -256,6 +272,7 @@ def get_best_pve_moveset(species_name: str):
             c_dur = c_move.get("pve_duration_ms", 0) / 1000.0
             c_energy = abs(c_move.get("pve_energy_delta", 100))
             c_stab = 1.2 if c_move.get("type") in types else 1.0
+            is_c_elite = c_id in elite_charged
             
             if f_energy > 0:
                 n = math.ceil(c_energy / f_energy)
@@ -266,10 +283,23 @@ def get_best_pve_moveset(species_name: str):
             time = (f_dur * n) + c_dur
             cycle_dps = damage / time if time > 0 else 0.0
             
+            # Absolute best evaluation
             if cycle_dps > best_dps:
                 best_dps = cycle_dps
                 best_fast = f_id
                 best_charged = c_id
                 
-    return best_fast, best_charged, round(best_dps, 2)
+            # Standard best evaluation
+            if not is_f_elite and not is_c_elite:
+                if cycle_dps > std_dps:
+                    std_dps = cycle_dps
+                    std_fast = f_id
+                    std_charged = c_id
+                    
+    return {
+        "best": (best_fast, best_charged, round(best_dps, 2)) if best_fast else None,
+        "standard": (std_fast, std_charged, round(std_dps, 2)) if std_fast else None,
+        "elite_fast": elite_fast,
+        "elite_charged": elite_charged
+    }
 

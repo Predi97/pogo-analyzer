@@ -18,6 +18,8 @@ a projekt stosuje się do [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 - **Udoskonalone Sugestie Składów PvP**: Przebudowano algorytm doboru ról na podstawie dynamicznego rozkładu współczynnika wytrzymałości, gwarantując generowanie składów w każdej lidze (w tym Master League) i dodano podsumowanie najlepszych Pokémonów dla każdej roli w plecaku.
 - **Podgląd Zwiniętych Sekcji Rozwoju**: Dodano dynamiczne plakietki podglądu z nazwą i CP top 3 kandydatów, wyświetlane bezpośrednio pod zarysem zwiniętej karty w sekcji Rozwój.
 - **Porównanie Idealnego IV w PvP**: Wprowadzono dynamiczne wyliczanie optymalnej kombinacji IV (Rank 1, np. `0/15/15` dla Umbreona w Great League), wyświetlanej bezpośrednio pod plakietką rangi w tabeli kandydatów PvP.
+- **Aktualizacja Oficjalnych Statystyk Bazowych**: Zaktualizowano szacowane/przedpremierowe statystyki bazowe dla gatunków z Gen 8, Gen 9 i Hisui (Rillaboom, Cinderace, Inteleon, Greedent, Dubwool, Meltan, Coalossal, Flapple, Toxtricity, Cursola, Zacian, Zamazenta, Sneasler, Overqwil, Ursaluna, Pawmot, Revavroom) zgodnie z oficjalnym Game Masterem Pokémon GO, eliminując rozbieżności w kalkulacji CP.
+- **Rozstrzyganie Remisów Iloczynu Statystyk (Tie-Breaker)**: Wdrożono algorytm rozstrzygania remisów identycznego stat productu na korzyść kombinacji z wyższym CP, a następnie wyższym IV obrony i zdrowia, uzyskując 100% zgodności z rankingami PvPoke.
 
 
 

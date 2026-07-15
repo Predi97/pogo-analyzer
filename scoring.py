@@ -251,11 +251,7 @@ def get_best_pve_moveset(species_name: str):
         
     types = entry.get("types", [])
     
-    best_fast, best_charged = None, None
-    best_dps = -1.0
-    
-    std_fast, std_charged = None, None
-    std_dps = -1.0
+    combinations = []
     
     for f_id in fast_pool:
         f_move = MOVES.get(f_id)
@@ -289,23 +285,30 @@ def get_best_pve_moveset(species_name: str):
             # Apply a 1.15x type-synergy multiplier if Fast and Charged move types match (PvE meta values matching types)
             score = cycle_dps * 1.15 if f_move.get("type") == c_move.get("type") else cycle_dps
             
-            # Absolute best evaluation
-            if score > best_dps:
-                best_dps = score
-                best_fast = f_id
-                best_charged = c_id
-                
-            # Standard best evaluation
-            if not is_f_elite and not is_c_elite:
-                if score > std_dps:
-                    std_dps = score
-                    std_fast = f_id
-                    std_charged = c_id
-                    
-    return {
-        "best": (best_fast, best_charged, round(best_dps, 2)) if best_fast else None,
-        "standard": (std_fast, std_charged, round(std_dps, 2)) if std_fast else None,
-        "elite_fast": elite_fast,
-        "elite_charged": elite_charged
-    }
+            combinations.append({
+                "fast_id": f_id,
+                "fast_name": f_move["name"],
+                "fast_type": f_move["type"],
+                "fast_elite": is_f_elite,
+                "charged_id": c_id,
+                "charged_name": c_move["name"],
+                "charged_type": c_move["type"],
+                "charged_elite": is_c_elite,
+                "dps": round(cycle_dps, 1),
+                "score": score
+            })
+            
+    # Sort by score descending
+    combinations.sort(key=lambda x: -x["score"])
+    
+    # Filter to remove duplicate pairs
+    seen = set()
+    unique_combos = []
+    for c in combinations:
+        key = (c["fast_name"], c["charged_name"])
+        if key not in seen:
+            seen.add(key)
+            unique_combos.append(c)
+            
+    return unique_combos[:3]
 

@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Advanced Transfer Regex Generator**: Expanded options to protect specific statuses (Hundos, Nandos, Shiny, Shadow, Lucky, Favorites, Meta, 3*+, PvP GL, Level >= 35) and added exclusion keywords (Mythical, UB, Costume, Purified, Buddy, Defender, Mega) dynamically localized in Polish and English.
 - **Collapsible Develop Panels**: Replaced full-height tables in the Develop panel with toggleable card drawers to optimize page layout.
 - **Robust PvP Team Suggestions**: Restructured local team algorithms using dynamic stat-ratio sorting to consistently calculate optimal lead, safe switch, and closer combinations for all leagues (including Master League), rendering role summaries in the PvP panel.
+- **Develop Tab Previews**: Added collapsed previews displaying the top 3 candidate Pokémon name and CP for each category in the Develop panel, improving visibility at a glance.
+- **Ideal PvP IV Comparison**: Integrated Rank 1 ideal PvP IV combinations (e.g., `0/15/15` for Great League Umbreon) dynamically calculated and displayed underneath the candidate's Rank badge in the PvP candidates table.
 
 
 

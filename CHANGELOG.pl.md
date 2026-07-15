@@ -16,6 +16,8 @@ a projekt stosuje się do [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 - **Rozszerzony Generator Regex**: Dodano przełączniki ochrony specyficznych statusów (Hundo, Nando, Shiny, Shadow, Lucky, Ulubione, Meta S/A, 3★+, PvP, Poziom >= 35) oraz przełączniki wykluczania grup (mityczne, UB, kostiumy, oczyszczone, pomocnicy/buddy, obrońcy gymów, mega) automatycznie dostosowywane do języka gry.
 - **Zwijane Sekcje Panelu Rozwój**: Zastąpiono wysokie tabele w zakładce Rozwój zwijanymi szufladami, aby zoptymalizować widoczność i wysokość strony.
 - **Udoskonalone Sugestie Składów PvP**: Przebudowano algorytm doboru ról na podstawie dynamicznego rozkładu współczynnika wytrzymałości, gwarantując generowanie składów w każdej lidze (w tym Master League) i dodano podsumowanie najlepszych Pokémonów dla każdej roli w plecaku.
+- **Podgląd Zwiniętych Sekcji Rozwoju**: Dodano dynamiczne plakietki podglądu z nazwą i CP top 3 kandydatów, wyświetlane bezpośrednio pod zarysem zwiniętej karty w sekcji Rozwój.
+- **Porównanie Idealnego IV w PvP**: Wprowadzono dynamiczne wyliczanie optymalnej kombinacji IV (Rank 1, np. `0/15/15` dla Umbreona w Great League), wyświetlanej bezpośrednio pod plakietką rangi w tabeli kandydatów PvP.
 
 
 

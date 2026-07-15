@@ -15,6 +15,9 @@ bp = Blueprint("analysis", __name__)
 
 @bp.route("/api/raid-candidates")
 def api_raid_candidates():
+    from data.moves import MOVES
+    from scoring import get_best_pve_moveset
+
     tiers  = get_tier_list()
     scored = []
     for p in _state["pokemons"]:
@@ -23,13 +26,44 @@ def api_raid_candidates():
         score = raid_score(p["pid"], p["iv_a"], p["iv_d"], p["iv_s"], tiers, p["name"])
         if score < 1:
             continue
+        
+        m1 = MOVES.get(p.get("move1"))
+        m2 = MOVES.get(p.get("move2"))
+        m3 = MOVES.get(p.get("move3"))
+        
+        curr_moves = [m1["name"]] if m1 else []
+        if m2:
+            curr_moves.append(m2["name"])
+        if m3:
+            curr_moves.append(m3["name"])
+            
+        species_name = p["name"].lower().replace(" (shadow)", "").replace(" (purified)", "")
+        best_pve = get_best_pve_moveset(species_name)
+        pve_optimal = []
+        if best_pve:
+            bf_id, bc_id, _ = best_pve
+            bf = MOVES.get(bf_id)
+            bc = MOVES.get(bc_id)
+            if bf:
+                pve_optimal.append(bf["name"])
+            if bc:
+                pve_optimal.append(bc["name"])
+
         tier_data = _tier_for(p["name"], tiers)
         scored.append({
             **p,
-            "raid_score": round(score),
-            "max_cp":     max_cp(p["pid"], p["iv_a"], p["iv_d"], p["iv_s"]),
-            "tiers":      tier_data,
-            "best_tier":  _best_tier(tier_data),
+            "raid_score":  round(score),
+            "max_cp":      max_cp(p["pid"], p["iv_a"], p["iv_d"], p["iv_s"]),
+            "tiers":       tier_data,
+            "best_tier":   _best_tier(tier_data),
+            "move1_name":  m1["name"] if m1 else "",
+            "move1_type":  m1["type"] if m1 else "",
+            "move2_name":  m2["name"] if m2 else "",
+            "move2_type":  m2["type"] if m2 else "",
+            "move3_name":  m3["name"] if m3 else "",
+            "move3_type":  m3["type"] if m3 else "",
+            "curr_moves":  curr_moves,
+            "pve_optimal": pve_optimal
         })
     scored.sort(key=lambda x: -x["raid_score"])
     return jsonify(scored[:60])

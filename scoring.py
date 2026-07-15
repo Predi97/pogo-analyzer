@@ -161,3 +161,66 @@ def _tier_for(name: str, tiers: dict) -> dict:
 def _best_tier(tier_dict: dict) -> Optional[str]:
     tiers = [t for t in tier_dict.values() if t in _TIER_ORDER]
     return min(tiers, key=lambda t: _TIER_ORDER[t]) if tiers else None
+
+
+def calculate_cp_for_level(pid: int, iv_a: int, iv_d: int, iv_s: int, target_level: float) -> int:
+    bs = _BS.get(pid)
+    if not bs:
+        return 0
+    a, d, s = bs
+    c = _cpm(target_level)
+    return max(10, int((a + iv_a) * ((d + iv_d) ** 0.5) * ((s + iv_s) ** 0.5) * c * c / 10))
+
+
+def get_best_pve_moveset(species_name: str):
+    from data.pokemon_db import POKEMON_DB
+    from data.moves import MOVES
+    entry = POKEMON_DB.get(species_name.lower())
+    if not entry:
+        return None
+    
+    fast_pool = entry.get("quick_moves", []) + entry.get("elite_quick_moves", [])
+    charged_pool = entry.get("cinematic_moves", []) + entry.get("elite_cinematic_moves", [])
+    
+    if not fast_pool or not charged_pool:
+        return None
+        
+    types = entry.get("types", [])
+    
+    best_fast, best_charged = None, None
+    best_dps = -1.0
+    
+    for f_id in fast_pool:
+        f_move = MOVES.get(f_id)
+        if not f_move:
+            continue
+        f_power = f_move.get("pve_power", 0.0)
+        f_dur = f_move.get("pve_duration_ms", 0) / 1000.0
+        f_energy = f_move.get("pve_energy_delta", 0)
+        f_stab = 1.2 if f_move.get("type") in types else 1.0
+        
+        for c_id in charged_pool:
+            c_move = MOVES.get(c_id)
+            if not c_move:
+                continue
+            c_power = c_move.get("pve_power", 0.0)
+            c_dur = c_move.get("pve_duration_ms", 0) / 1000.0
+            c_energy = abs(c_move.get("pve_energy_delta", 100))
+            c_stab = 1.2 if c_move.get("type") in types else 1.0
+            
+            if f_energy > 0:
+                n = math.ceil(c_energy / f_energy)
+            else:
+                n = 5
+            
+            damage = (f_power * f_stab * n) + (c_power * c_stab)
+            time = (f_dur * n) + c_dur
+            cycle_dps = damage / time if time > 0 else 0.0
+            
+            if cycle_dps > best_dps:
+                best_dps = cycle_dps
+                best_fast = f_id
+                best_charged = c_id
+                
+    return best_fast, best_charged, round(best_dps, 2)
+

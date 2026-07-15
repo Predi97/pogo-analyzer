@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-07-15
+
+### Added
+- **PvP & Raid Moveset Optimizer**: Analyzes quick and cinematic attacks of S/A tier Pokémon against optimal setups from PvPoke and computed PvE Cycle DPS, highlighting Elite TM requirements and event-locked moves (Frustration/Return).
+- **Interactive Power-up Cost Calculator**: Integrated dropdowns on candidate panels to dynamically compute precise Stardust, Candy, and XL Candy upgrades, along with target CP predictions using CPM values.
+- **Evolution CP Predictor**: Analyzes evolution stages and predicts post-evolution CP while validating compatibility with Great League (1500 CP) and Ultra League (2500 CP) limits.
+- **Dashboard Box Analytics**: Added collapsible visual charts (IV distribution and type distribution) built with Chart.js, alongside a Nando (0% IV) tracker displaying rare specimens.
+
 ## [1.1.0] - 2026-07-14
 
 ### Added

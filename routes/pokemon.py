@@ -73,6 +73,7 @@ def api_pokemons():
         pass
 
     result = []
+    from data.pokemon_db import POKEMON_DB
     for p in _state["pokemons"]:
         tier_data  = _tier_for(p["name"], tiers)
         event_tags = event_spawn_index.get(p["name"].lower(), [])
@@ -86,12 +87,21 @@ def api_pokemons():
         m2 = MOVES.get(move2_id) if move2_id else None
         m3 = MOVES.get(move3_id) if move3_id else None
         
+        name_key = p["name"].lower().replace(" (shadow)", "").replace(" (purified)", "")
+        db_entry = POKEMON_DB.get(name_key)
+        if not db_entry:
+            matched_key = next((k for k in POKEMON_DB.keys() if k in name_key or name_key in k), None)
+            if matched_key:
+                db_entry = POKEMON_DB[matched_key]
+        types = db_entry.get("types", ["normal"]) if db_entry else ["normal"]
+        
         result.append({
             **p,
             "tiers":      tier_data,
             "best_tier":  _best_tier(tier_data),
             "event_tags": event_tags,
             "gl_rank":    gl_rank,
+            "types":      types,
             "move1_name": m1["name"] if m1 else "",
             "move1_type": m1["type"] if m1 else "",
             "move2_name": m2["name"] if m2 else "",
@@ -263,6 +273,7 @@ def api_status():
             "shadows":    sum(1 for p in pokemons if p["shadow"]),
             "hundos":     sum(1 for p in pokemons if p["hundo"]),
             "luckies":    sum(1 for p in pokemons if p["lucky"]),
+            "nandos":     sum(1 for p in pokemons if p["iv_a"] == 0 and p["iv_d"] == 0 and p["iv_s"] == 0),
             "item_types": len(_state["items"]),
             "stardust":   _state["player"].get("stardust", 0) if _state.get("player") else stardust,
         },

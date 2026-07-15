@@ -35,7 +35,7 @@ def api_raid_candidates():
     return jsonify(scored[:60])
 
 
-def build_local_teams(candidates: list[dict], league: str) -> list[dict]:
+def build_local_teams(candidates: list[dict], league: str) -> tuple[list[dict], list[dict], list[dict], list[dict]]:
     # Typical PvP roles for top meta
     PVP_ROLES = {
         "Lickitung": "Safe Switch", "Cresselia": "Safe Switch", "Gligar": "Safe Switch",
@@ -74,33 +74,44 @@ def build_local_teams(candidates: list[dict], league: str) -> list[dict]:
         "Stunfisk": ["ground", "electric"], "Pidgeot": ["normal", "flying"]
     }
 
+    # Dynamic classification helper
+    candidates_with_ratio = []
+    for c in candidates:
+        name = c["name"]
+        role = PVP_ROLES.get(name)
+        ratio = 1.5
+        bs = _BS.get(c["pid"])
+        if bs:
+            atk, dfs, sta = bs
+            if atk > 0:
+                ratio = (dfs + sta) / atk
+        candidates_with_ratio.append((c, role, ratio))
+
+    # Sort candidates by bulk ratio (low to high)
+    candidates_with_ratio.sort(key=lambda x: x[2])
+
     leads = []
     switches = []
     closers = []
 
-    for c in candidates:
-        name = c["name"]
-        role = PVP_ROLES.get(name)
+    n = len(candidates_with_ratio)
+    for idx, (c, role, ratio) in enumerate(candidates_with_ratio):
         if not role:
-            bs = _BS.get(c["pid"])
-            if bs:
-                atk, dfs, sta = bs
-                if dfs + sta > 2.2 * atk:
-                    role = "Safe Switch"
-                elif atk > 1.1 * dfs:
-                    role = "Closer"
-                else:
-                    role = "Lead"
+            # lower 33% are closers, upper 33% are switches, middle are leads
+            if idx < int(n * 0.33):
+                role = "Closer"
+            elif idx > int(n * 0.67):
+                role = "Safe Switch"
             else:
                 role = "Lead"
 
         c_with_role = {**c, "pvp_role": role}
 
-        if "Lead" in role:
+        if role == "Lead":
             leads.append(c_with_role)
-        if "Safe Switch" in role:
+        elif role == "Safe Switch":
             switches.append(c_with_role)
-        if "Closer" in role:
+        elif role == "Closer":
             closers.append(c_with_role)
 
     teams = []
@@ -147,7 +158,7 @@ def build_local_teams(candidates: list[dict], league: str) -> list[dict]:
                 used_ids.add(closer_key)
                 break
 
-    if len(teams) < 2:
+    if len(teams) < 3:
         for lead in leads:
             if len(teams) >= 3:
                 break
@@ -177,7 +188,7 @@ def build_local_teams(candidates: list[dict], league: str) -> list[dict]:
                         })
                         break
 
-    return teams
+    return leads, switches, closers, teams
 
 
 @bp.route("/api/pvp-candidates")
@@ -216,11 +227,16 @@ def api_pvp_candidates():
     scored.sort(key=lambda x: -x["pvp_score"])
     top_candidates = scored[:60]
 
-    local_teams = build_local_teams(scored[:20], league)
+    leads, switches, closers, local_teams = build_local_teams(scored[:20], league)
 
     return jsonify({
         "candidates": top_candidates,
-        "local_teams": local_teams
+        "local_teams": local_teams,
+        "best_by_role": {
+            "leads": [{"name": p["name"], "cp": p["cp"], "pvp_rank": p["pvp_rank"]} for p in leads[:3]],
+            "switches": [{"name": p["name"], "cp": p["cp"], "pvp_rank": p["pvp_rank"]} for p in switches[:3]],
+            "closers": [{"name": p["name"], "cp": p["cp"], "pvp_rank": p["pvp_rank"]} for p in closers[:3]]
+        }
     })
 
 

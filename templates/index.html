@@ -595,23 +595,23 @@ tr:hover td{background:rgba(163,240,80,.025)}
       <!-- Box Analytics Section -->
       <div class="card" style="margin-bottom:16px; border-color: rgba(163,240,80,.15);">
         <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleAnalytics()">
-          <span>📊 Statystyki Boxa / Box Analytics</span>
+          <span id="lbl-box-analytics">📊 Statystyki Boxa</span>
           <span id="analytics-toggle-icon">▼</span>
         </div>
         <div id="analytics-content" style="display:none; padding-top:12px;">
           <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:16px;">
             <div style="background:var(--bg3); padding:16px; border-radius:8px;">
-              <h4 style="margin-bottom:12px; font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Rozkład IV / IV Distribution</h4>
+              <h4 id="lbl-iv-dist" style="margin-bottom:12px; font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Rozkład IV</h4>
               <div style="height:150px; position:relative;"><canvas id="chart-iv"></canvas></div>
             </div>
             <div style="background:var(--bg3); padding:16px; border-radius:8px;">
-              <h4 style="margin-bottom:12px; font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Rozkład Typów / Type Distribution</h4>
+              <h4 id="lbl-type-dist" style="margin-bottom:12px; font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Rozkład Typów</h4>
               <div style="height:150px; position:relative;"><canvas id="chart-types"></canvas></div>
             </div>
           </div>
           <div style="margin-top:16px; background:var(--bg3); padding:12px 16px; border-radius:8px; display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
             <div>
-              <span style="font-size:12px; color:var(--muted);">Rzadkie okazy (0% IV - Nando):</span>
+              <span id="lbl-nando-tracker" style="font-size:12px; color:var(--muted);">Rzadkie okazy (0% IV - Nando):</span>
               <strong id="nando-list-label" style="font-size:13px; color:var(--red); margin-left:6px;">0</strong>
             </div>
             <div id="nando-names-container" style="font-size:11px; color:var(--text); display:flex; gap:6px; flex-wrap:wrap;"></div>
@@ -642,39 +642,51 @@ tr:hover td{background:rgba(163,240,80,.025)}
         </select>
         <span class="count-label" id="poke-count"></span>
       </div>
-      <div class="regex-bar">
-        <span class="rlabel" id="lbl-regex-pogo">🔍 Regex PoGO</span>
-        <label>
-          <input type="checkbox" id="ropt-safe" checked>
-          <span id="lbl-ropt-safe" title="Dodaje &amp;!shiny&amp;!shadow&amp;!lucky&amp;!favorite">bez shiny/shadow/lucky</span>
-        </label>
-        <label>
-          <input type="checkbox" id="ropt-iv">
-          <span id="lbl-ropt-iv" title="Wyklucza IV≥82%">bez 3★+</span>
-        </label>
-        <label>
-          <input type="checkbox" id="ropt-legendary">
-          <span id="lbl-ropt-legendary">bez legendary</span>
-        </label>
-        <label>
-          <input type="checkbox" id="ropt-cp">
-          <span id="lbl-ropt-cp-lbl">max CP:</span>
-        </label>
-        <input type="number" id="ropt-cp-val" placeholder="np. 500" min="10" max="9999" style="width:70px">
-        <label title="Chroni pokemony z CP powyżej tej wartości przed wylądowaniem w query (nie są transferem)">
-          <span id="lbl-ropt-cp-min-lbl" style="white-space:nowrap">chroń CP≥</span>
-        </label>
-        <input type="number" id="ropt-cp-min" placeholder="1200" min="10" max="9999" value="1200" style="width:65px">
-        <label title="Chroni pokemony z dobrym rankiem PvP GL (rank ≤500) przed wylądowaniem w query">
-          <input type="checkbox" id="ropt-pvp" checked>
-          <span id="lbl-ropt-pvp">chroń PvP</span>
-        </label>
-        <label title="Chroni pokemony z poziomem ≥35">
-          <input type="checkbox" id="ropt-lvl" checked>
-          <span id="lbl-ropt-lvl">chroń lvl≥35</span>
-        </label>
-        <button class="btn btn-outline btn-sm" id="btn-copy-regex" style="margin-left:auto">📋 Kopiuj regex</button>
-        <span id="regex-hint" style="color:var(--muted);font-size:10px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+      <div class="regex-bar" style="display: flex; flex-direction: column; gap: 12px; padding: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <span class="rlabel" id="lbl-regex-pogo">🔍 Regex PoGO</span>
+          <span id="regex-hint" style="color:var(--muted);font-size:10px;"></span>
+        </div>
+        
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; border-bottom: 1px solid var(--border2); padding-bottom: 10px; width: 100%;">
+          <span style="font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; margin-right: 6px;" id="lbl-regex-protect">Chroń (nie dodawaj do transferu):</span>
+          <label><input type="checkbox" id="ropt-hundo" checked> 💯 Hundo</label>
+          <label><input type="checkbox" id="ropt-nando" checked> ❌ Nando</label>
+          <label><input type="checkbox" id="ropt-shiny" checked> ✨ Shiny</label>
+          <label><input type="checkbox" id="ropt-shadow" checked> 👻 Shadow</label>
+          <label><input type="checkbox" id="ropt-lucky" checked> 🍀 Lucky</label>
+          <label><input type="checkbox" id="ropt-fav" checked> ⭐ Ulubione</label>
+          <label><input type="checkbox" id="ropt-meta" checked> 🥇 Meta S/A</label>
+          <label><input type="checkbox" id="ropt-iv" checked> 3★+ (IV≥82%)</label>
+          <label><input type="checkbox" id="ropt-pvp" checked> PvP Rank≤500</label>
+          <label><input type="checkbox" id="ropt-lvl" checked> Lvl≥35</label>
+          <label style="gap: 4px; display: inline-flex; align-items: center;">
+            <span id="lbl-ropt-cp-min-lbl">CP≥</span>
+            <input type="number" id="ropt-cp-min" placeholder="1200" min="10" max="9999" value="1200" style="width:65px">
+          </label>
+        </div>
+        
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; width: 100%;">
+          <span style="font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; margin-right: 6px;" id="lbl-regex-exclude">Dodaj filtry wykluczające (&!):</span>
+          <label><input type="checkbox" id="ropt-ex-shiny"> !shiny</label>
+          <label><input type="checkbox" id="ropt-ex-shadow"> !shadow</label>
+          <label><input type="checkbox" id="ropt-ex-lucky"> !lucky</label>
+          <label><input type="checkbox" id="ropt-ex-fav"> !ulubione</label>
+          <label><input type="checkbox" id="ropt-ex-legendary"> !legendary</label>
+          <label><input type="checkbox" id="ropt-ex-mythical"> !mythical</label>
+          <label><input type="checkbox" id="ropt-ex-ub"> !ub</label>
+          <label><input type="checkbox" id="ropt-ex-costume"> !costume</label>
+          <label><input type="checkbox" id="ropt-ex-purified"> !purified</label>
+          <label><input type="checkbox" id="ropt-ex-buddy"> !buddy</label>
+          <label><input type="checkbox" id="ropt-ex-defender"> !defender</label>
+          <label><input type="checkbox" id="ropt-ex-mega"> !mega</label>
+          <label style="gap: 4px; display: inline-flex; align-items: center;">
+            <input type="checkbox" id="ropt-cp">
+            <span id="lbl-ropt-cp-lbl">max CP:</span>
+            <input type="number" id="ropt-cp-val" placeholder="500" min="10" max="9999" style="width:70px">
+          </label>
+          <button class="btn btn-outline btn-sm" id="btn-copy-regex" style="margin-left:auto">📋 Kopiuj regex</button>
+        </div>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)">
@@ -755,7 +767,8 @@ tr:hover td{background:rgba(163,240,80,.025)}
       <div class="alert alert-info">Ranking uwzględnia CP przy limicie ligi, bulk (def×sta), tier listę meta. Posortowane od najlepszego.</div>
       <!-- Local PvP Team Suggestions -->
       <div id="pvp-local-teams-card" style="display: none; margin-bottom: 20px;" class="card">
-        <div class="card-title">Sugerowane składy PvP (kalkulacja lokalna)</div>
+        <div class="card-title" id="pvp-local-title">Sugerowane składy PvP (kalkulacja lokalna)</div>
+        <div id="pvp-best-by-role" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px; margin-top: 8px;"></div>
         <div id="pvp-local-teams-list" style="display: flex; flex-direction: column; gap: 12px;"></div>
       </div>
       <div class="tbl-wrap">
@@ -825,62 +838,82 @@ tr:hover td{background:rgba(163,240,80,.025)}
       <div class="panel-title">🔧 Rozwój</div>
 
       <div class="card">
-        <div class="card-title">🥚 Do ewoluowania</div>
-        <p style="font-size:12px;color:var(--muted);margin-bottom:12px">
-          Pokemony z IV ≥ 80%, których <strong>końcowa forma jest meta (tier S lub A)</strong>.
-          Ewolucja nie zmienia IV — warto ewoluować zanim będziesz power-upował.
-        </p>
-        <div class="tbl-wrap"><table>
-          <thead><tr>
-            <th>Pokemon (pre-evo)</th><th>CP</th><th>Lvl</th><th>IV%</th>
-            <th>→ Prognoza Ewolucji</th><th>Tier</th><th>Tagi</th><th>AI</th>
-          </tr></thead>
-          <tbody id="dev-evolve-tbody"></tbody>
-        </table></div>
+        <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleDevCard('dev-evolve-content')">
+          <span id="lbl-dev-evolve-title">🥚 Do ewoluowania</span>
+          <span id="dev-evolve-toggle-icon">▲</span>
+        </div>
+        <div id="dev-evolve-content" style="display:block; padding-top:12px;">
+          <p id="lbl-dev-evolve-desc" style="font-size:12px;color:var(--muted);margin-bottom:12px">
+            Pokemony z IV ≥ 80%, których <strong>końcowa forma jest meta (tier S lub A)</strong>.
+            Ewolucja nie zmienia IV — warto ewoluować zanim będziesz power-upował.
+          </p>
+          <div class="tbl-wrap"><table>
+            <thead><tr>
+              <th>Pokemon (pre-evo)</th><th>CP</th><th>Lvl</th><th>IV%</th>
+              <th>→ Prognoza Ewolucji</th><th>Tier</th><th>Tagi</th><th>AI</th>
+            </tr></thead>
+            <tbody id="dev-evolve-tbody"></tbody>
+          </table></div>
+        </div>
       </div>
 
       <div class="card">
-        <div class="card-title">⚡ Do ulepszenia (Power Up)</div>
-        <p style="font-size:12px;color:var(--muted);margin-bottom:12px">
-          Meta pokemon (tier S/A) z IV ≥ 80% poniżej <strong>poziomu 40</strong>.
-          Inwestycja w stardust opłaca się tylko dla meta okazów. Wybierz docelowy poziom, by sprawdzić koszt i CP.
-        </p>
-        <div class="tbl-wrap"><table>
-          <thead><tr>
-            <th>Pokemon</th><th>CP</th><th>Lvl</th><th>IV%</th>
-            <th>A/D/S</th><th>Poziom docelowy</th><th>Prognoza kosztu / CP</th><th>AI</th>
-          </tr></thead>
-          <tbody id="dev-powerup-tbody"></tbody>
-        </table></div>
+        <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleDevCard('dev-powerup-content')">
+          <span id="lbl-dev-powerup-title">⚡ Do ulepszenia (Power Up)</span>
+          <span id="dev-powerup-toggle-icon">▼</span>
+        </div>
+        <div id="dev-powerup-content" style="display:none; padding-top:12px;">
+          <p id="lbl-dev-powerup-desc" style="font-size:12px;color:var(--muted);margin-bottom:12px">
+            Meta pokemon (tier S/A) z IV ≥ 80% poniżej <strong>poziomu 40</strong>.
+            Inwestycja w stardust opłaca się tylko dla meta okazów. Wybierz docelowy poziom, by sprawdzić koszt i CP.
+          </p>
+          <div class="tbl-wrap"><table>
+            <thead><tr>
+              <th>Pokemon</th><th>CP</th><th>Lvl</th><th>IV%</th>
+              <th>A/D/S</th><th>Poziom docelowy</th><th>Prognoza kosztu / CP</th><th>AI</th>
+            </tr></thead>
+            <tbody id="dev-powerup-tbody"></tbody>
+          </table></div>
+        </div>
       </div>
 
       <div class="card">
-        <div class="card-title">✨ Do oczyszczenia (Purify Shadow)</div>
-        <p style="font-size:12px;color:var(--muted);margin-bottom:12px">
-          Shadow pokemony, których IV <strong>po oczyszczeniu (+2 do każdego, max 15)</strong> osiągnie ≥ 80%.
-          Shadow bonus (+20% ataku) vs. lepsze IV — zapytaj AI co bardziej się opłaca.
-        </p>
-        <div class="tbl-wrap"><table>
-          <thead><tr>
-            <th>Pokemon</th><th>CP</th><th>IV teraz</th><th>IV po ocz.</th>
-            <th>A/D/S → po oczyszcz.</th><th>Tier</th><th>AI</th>
-          </tr></thead>
-          <tbody id="dev-purify-tbody"></tbody>
-        </table></div>
+        <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleDevCard('dev-purify-content')">
+          <span id="lbl-dev-purify-title">✨ Do oczyszczenia (Purify Shadow)</span>
+          <span id="dev-purify-toggle-icon">▼</span>
+        </div>
+        <div id="dev-purify-content" style="display:none; padding-top:12px;">
+          <p id="lbl-dev-purify-desc" style="font-size:12px;color:var(--muted);margin-bottom:12px">
+            Shadow pokemony, których IV <strong>po oczyszczeniu (+2 do każdego, max 15)</strong> osiągnie ≥ 80%.
+            Shadow bonus (+20% ataku) vs. lepsze IV — zapytaj AI co bardziej się opłaca.
+          </p>
+          <div class="tbl-wrap"><table>
+            <thead><tr>
+              <th>Pokemon</th><th>CP</th><th>IV teraz</th><th>IV po ocz.</th>
+              <th>A/D/S → po oczyszcz.</th><th>Tier</th><th>AI</th>
+            </tr></thead>
+            <tbody id="dev-purify-tbody"></tbody>
+          </table></div>
+        </div>
       </div>
 
       <div class="card">
-        <div class="card-title">⚔️ Kandydaci na Elite TM</div>
-        <p style="font-size:12px;color:var(--muted);margin-bottom:12px">
-          Meta pokemon (tier S/A) na <strong>poziomie ≥ 35</strong> — warte sprawdzenia czy mają
-          optymalne ataki. Elite Fast/Charged TM pozwala nauczyć legacy lub ekskluzywnych ruchów.
-        </p>
-        <div class="tbl-wrap"><table>
-          <thead><tr>
-            <th>Pokemon</th><th>CP</th><th>Obecne ataki</th><th>Zestaw PvP</th><th>Zestaw PvE (Raid)</th><th>Sugestia TM</th>
-          </tr></thead>
-          <tbody id="dev-tm-tbody"></tbody>
-        </table></div>
+        <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleDevCard('dev-tm-content')">
+          <span id="lbl-dev-tm-title">⚔️ Kandydaci na Elite TM</span>
+          <span id="dev-tm-toggle-icon">▼</span>
+        </div>
+        <div id="dev-tm-content" style="display:none; padding-top:12px;">
+          <p id="lbl-dev-tm-desc" style="font-size:12px;color:var(--muted);margin-bottom:12px">
+            Meta pokemon (tier S/A) na <strong>poziomie ≥ 35</strong> — warte sprawdzenia czy mają
+            optymalne ataki. Elite Fast/Charged TM pozwala nauczyć legacy lub ekskluzywnych ruchów.
+          </p>
+          <div class="tbl-wrap"><table>
+            <thead><tr>
+              <th>Pokemon</th><th>CP</th><th>Obecne ataki</th><th>Zestaw PvP</th><th>Zestaw PvE (Raid)</th><th>Sugestia TM</th>
+            </tr></thead>
+            <tbody id="dev-tm-tbody"></tbody>
+          </table></div>
+        </div>
       </div>
     </div>
 
@@ -1214,24 +1247,37 @@ function buildPogoQuery() {
   const list = sortPokes(S.pokemons.filter(filterPoke));
   if (!list.length) return null;
 
-  const cpMin  = parseInt($("ropt-cp-min").value) || 1200;
-  const pvpOn  = $("ropt-pvp").checked;
-  const lvlOn  = $("ropt-lvl").checked;
+  const cpMin = parseInt($("ropt-cp-min").value) || 1200;
+  
+  const protectHundo = $("ropt-hundo").checked;
+  const protectNando = $("ropt-nando").checked;
+  const protectShiny = $("ropt-shiny").checked;
+  const protectShadow = $("ropt-shadow").checked;
+  const protectLucky = $("ropt-lucky").checked;
+  const protectFav = $("ropt-fav").checked;
+  const protectMeta = $("ropt-meta").checked;
+  const protectIv = $("ropt-iv").checked;
+  const protectPvp = $("ropt-pvp").checked;
+  const protectLvl = $("ropt-lvl").checked;
 
   const protected_ = new Set(
     S.pokemons
       .filter(p =>
-        p.shiny || p.shadow || p.lucky || p.fav || p.hundo
-        || p.iv_pct >= 82.2
-        || p.best_tier === "S" || p.best_tier === "A"
-        || p.cp  >= cpMin                          // za wysokie CP
-        || (pvpOn && p.gl_rank > 0 && p.gl_rank <= 500)  // dobry PvP GL rank
-        || (lvlOn && p.lvl >= 35)                  // wysoki poziom
+        (protectHundo && (p.hundo || p.iv_pct === 100))
+        || (protectNando && p.iv_pct === 0)
+        || (protectShiny && p.shiny)
+        || (protectShadow && p.shadow)
+        || (protectLucky && p.lucky)
+        || (protectFav && p.fav)
+        || (protectMeta && (p.best_tier === "S" || p.best_tier === "A"))
+        || (protectIv && p.iv_pct >= 82.2)
+        || (p.cp >= cpMin)
+        || (protectPvp && p.gl_rank > 0 && p.gl_rank <= 500)
+        || (protectLvl && p.lvl >= 35)
       )
       .map(p => p.name)
   );
 
-  // deduplikuj po nazwie gatunku
   const seen = new Set();
   const allPokes = list.filter(p => seen.has(p.name) ? false : (seen.add(p.name), true));
   const safePokes = allPokes.filter(p => !protected_.has(p.name));
@@ -1240,9 +1286,21 @@ function buildPogoQuery() {
   if (!safePokes.length) return { query: null, skipped, total: allPokes.length };
 
   let suffix = "";
-  if ($("ropt-safe").checked)      suffix += "&!shiny&!shadow&!lucky&!favorite";
-  if ($("ropt-iv").checked)        suffix += "&!3*&!4*";
-  if ($("ropt-legendary").checked) suffix += "&!legendary&!mythical";
+  const isPl = _lang === "pl";
+  
+  if ($("ropt-ex-shiny").checked)     suffix += "&!shiny";
+  if ($("ropt-ex-shadow").checked)    suffix += "&!shadow";
+  if ($("ropt-ex-lucky").checked)     suffix += "&!lucky";
+  if ($("ropt-ex-fav").checked)       suffix += isPl ? "&!ulubione" : "&!favorite";
+  if ($("ropt-ex-legendary").checked) suffix += isPl ? "&!legenda" : "&!legendary";
+  if ($("ropt-ex-mythical").checked)  suffix += isPl ? "&!mityczny" : "&!mythical";
+  if ($("ropt-ex-ub").checked)        suffix += isPl ? "&!ultra bestia" : "&!ultrabeast";
+  if ($("ropt-ex-costume").checked)   suffix += isPl ? "&!kostium" : "&!costume";
+  if ($("ropt-ex-purified").checked)  suffix += isPl ? "&!oczyszczony" : "&!purified";
+  if ($("ropt-ex-buddy").checked)     suffix += isPl ? "&!pomocnik" : "&!buddy";
+  if ($("ropt-ex-defender").checked)  suffix += isPl ? "&!obrońca" : "&!defender";
+  if ($("ropt-ex-mega").checked)      suffix += isPl ? "&!mega" : "&!mega";
+  
   if ($("ropt-cp").checked) {
     const cpVal = $("ropt-cp-val").value;
     if (cpVal) suffix += `&cp-${cpVal}`;
@@ -1766,6 +1824,7 @@ function renderRaid() {
 // ── PvP ───────────────────────────────────────────────────────────────────────
 let _pvpData = {GL:[], UL:[], ML:[]};
 let _pvpLocalTeams = {GL:[], UL:[], ML:[]};
+let _pvpBestByRole = {GL: null, UL: null, ML: null};
 let _pvpLeague = "GL";
 
 $$(".tab-sub").forEach(btn => {
@@ -1779,6 +1838,7 @@ $$(".tab-sub").forEach(btn => {
     } else {
       renderPvP();
       renderLocalTeams(_pvpLocalTeams[_pvpLeague]);
+      renderBestByRole(_pvpBestByRole[_pvpLeague]);
     }
   });
 });
@@ -1787,10 +1847,78 @@ async function loadPvP(league) {
   const res = await api(`/api/pvp-candidates?league=${league}`);
   _pvpData[league] = res.candidates || [];
   _pvpLocalTeams[league] = res.local_teams || [];
+  _pvpBestByRole[league] = res.best_by_role || { leads: [], switches: [], closers: [] };
   if (_pvpLeague === league) {
     renderPvP();
     renderLocalTeams(_pvpLocalTeams[league]);
+    renderBestByRole(_pvpBestByRole[league]);
   }
+}
+
+function renderBestByRole(data) {
+  const container = $("pvp-best-by-role");
+  if (!container) return;
+  if (!data || (!data.leads.length && !data.switches.length && !data.closers.length)) {
+    container.style.display = "none";
+    return;
+  }
+  container.style.display = "grid";
+  
+  const isPl = _lang === "pl";
+  
+  const makeList = (pokes) => {
+    if (!pokes || pokes.length === 0) return `<div style="font-size:11px;color:var(--muted)">${isPl ? "Brak kandydatów" : "No candidates"}</div>`;
+    return pokes.map(p => `
+      <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg3); padding:6px 10px; border-radius:6px; border:1px solid var(--border2);">
+        <b style="font-size:11px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:110px;" title="${p.name}">${p.name}</b>
+        <div style="display:flex; gap:6px; font-family:var(--fm); font-size:9px;">
+          <span style="color:var(--muted);">CP ${p.cp}</span>
+          <span style="color:var(--accent);">Rank #${p.pvp_rank}</span>
+        </div>
+      </div>
+    `).join("");
+  };
+
+  container.innerHTML = `
+    <!-- LEADS -->
+    <div style="background:var(--bg3); padding:10px; border-radius:8px; border:1px solid var(--border2); display:flex; flex-direction:column; gap:6px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; display:inline-flex; align-items:center; gap:4px;">
+          🚀 ${isPl ? "Liderzy (Leads)" : "Leads"}
+          <span style="cursor:help; font-size:10px; color:var(--muted)" data-tooltip="${isPl ? 'Rozpoczynają walkę. Wywierają presję lub wygrywają neutralne pojedynki.' : 'Start the battle. Exert shield pressure or win neutral matchups.'}">ℹ️</span>
+        </span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        ${makeList(data.leads)}
+      </div>
+    </div>
+    
+    <!-- SWITCHES -->
+    <div style="background:var(--bg3); padding:10px; border-radius:8px; border:1px solid var(--border2); display:flex; flex-direction:column; gap:6px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; display:inline-flex; align-items:center; gap:4px;">
+          🛡️ ${isPl ? "Bezpieczne zmiany" : "Safe Switches"}
+          <span style="cursor:help; font-size:10px; color:var(--muted)" data-tooltip="${isPl ? 'Wprowadzane po przegranym leadzie. Mają dużą wytrzymałość (bulk) i bezpieczne pojedynki.' : 'Safe switch-in after losing lead. High bulk and safe matchups.'}">ℹ️</span>
+        </span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        ${makeList(data.switches)}
+      </div>
+    </div>
+    
+    <!-- CLOSERS -->
+    <div style="background:var(--bg3); padding:10px; border-radius:8px; border:1px solid var(--border2); display:flex; flex-direction:column; gap:6px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; display:inline-flex; align-items:center; gap:4px;">
+          💣 ${isPl ? "Finiszerzy (Closers)" : "Closers"}
+          <span style="cursor:help; font-size:10px; color:var(--muted)" data-tooltip="${isPl ? 'Kończą walkę. Zadają wysokie obrażenia, gdy przeciwnik nie ma już tarcz.' : 'Close the battle. Deal heavy damage when opponent has no shields left.'}">ℹ️</span>
+        </span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        ${makeList(data.closers)}
+      </div>
+    </div>
+  `;
 }
 
 function renderLocalTeams(teams) {
@@ -2231,13 +2359,6 @@ function applyLanguage() {
     "settings-cache-title": t.settingsCacheTitle,
     "settings-cache-desc": t.settingsCacheDesc,
     "lbl-regex-pogo": t.lblRegexPogo,
-    "lbl-ropt-safe": t.lblRoptSafe,
-    "lbl-ropt-iv": t.lblRoptIv,
-    "lbl-ropt-legendary": t.lblRoptLegendary,
-    "lbl-ropt-cp-lbl": t.lblRoptCpLbl,
-    "lbl-ropt-cp-min-lbl": t.lblRoptCpMinLbl,
-    "lbl-ropt-pvp": t.lblRoptPvp,
-    "lbl-ropt-lvl": t.lblRoptLvl,
     "btn-copy-regex": t.btnCopyRegex,
     "lbl-tags-lbl": t.lblTagsLbl,
     "btn-raw-csv": t.btnRawCsv,
@@ -2258,16 +2379,6 @@ function applyLanguage() {
 
   const cpVal = $("ropt-cp-val");
   if (cpVal) cpVal.placeholder = t.roptCpValPlaceholder;
-
-  const safeSpan = $("lbl-ropt-safe");
-  if (safeSpan) safeSpan.title = _lang === "pl" 
-    ? "Dodaje &!shiny&!shadow&!lucky&!favorite" 
-    : "Adds &!shiny&!shadow&!lucky&!favorite";
-    
-  const ivSpan = $("lbl-ropt-iv");
-  if (ivSpan) ivSpan.title = _lang === "pl"
-    ? "Wyklucza IV≥82%"
-    : "Excludes IV≥82%";
 
   const rawCsv = $("btn-raw-csv");
   if (rawCsv) rawCsv.title = _lang === "pl"
@@ -2391,25 +2502,57 @@ function applyLanguage() {
     ? "Najlepsi atakujący do raidów PvE z Twojego plecaka (kalkulacja DPS×TDO)."
     : "Best PvE raid attackers from your box (DPS×TDO calculation).";
 
-  const devEvolveTitle = document.querySelector("#panel-develop .card:nth-of-type(1) .card-title");
+  // Box Analytics localized elements
+  const boxAnalyticsEl = $("lbl-box-analytics");
+  if (boxAnalyticsEl) boxAnalyticsEl.textContent = _lang === "pl" ? "📊 Statystyki Boxa" : "📊 Box Analytics";
+  
+  const ivDistEl = $("lbl-iv-dist");
+  if (ivDistEl) ivDistEl.textContent = _lang === "pl" ? "Rozkład IV" : "IV Distribution";
+  
+  const typeDistEl = $("lbl-type-dist");
+  if (typeDistEl) typeDistEl.textContent = _lang === "pl" ? "Rozkład Typów" : "Type Distribution";
+  
+  const nandoTrackerEl = $("lbl-nando-tracker");
+  if (nandoTrackerEl) nandoTrackerEl.textContent = _lang === "pl" ? "Rzadkie okazy (0% IV - Nando):" : "Rare specimens (0% IV - Nando):";
+
+  // Regex bar text localization
+  const lblProtect = $("lbl-regex-protect");
+  if (lblProtect) lblProtect.textContent = _lang === "pl" ? "Chroń (nie dodawaj do transferu):" : "Protect (do not add to transfer):";
+
+  const lblExclude = $("lbl-regex-exclude");
+  if (lblExclude) lblExclude.textContent = _lang === "pl" ? "Dodaj filtry wykluczające (&!):" : "Add negative filters (&!):";
+
+  const copyRegexBtn = $("btn-copy-regex");
+  if (copyRegexBtn) copyRegexBtn.textContent = _lang === "pl" ? "📋 Kopiuj regex" : "📋 Copy regex";
+
+  // Develop card headings
+  const devEvolveTitle = $("lbl-dev-evolve-title");
   if (devEvolveTitle) devEvolveTitle.textContent = devCards[_lang].evolveTitle;
-  const devEvolveDesc = document.querySelector("#panel-develop .card:nth-of-type(1) p");
-  if (devEvolveDesc) devEvolveDesc.textContent = devCards[_lang].evolveDesc;
+  const devEvolveDesc = $("lbl-dev-evolve-desc");
+  if (devEvolveDesc) devEvolveDesc.innerHTML = _lang === "pl"
+    ? "Pokemony z IV ≥ 80%, których <strong>końcowa forma jest meta (tier S lub A)</strong>. Ewolucja nie zmienia IV — warto ewoluować zanim będziesz power-upował."
+    : "Pokémon with IV ≥ 80% whose <strong>final evolution is meta (tier S or A)</strong>. Evolution does not change IVs – evolve before power-up.";
 
-  const devPowerupTitle = document.querySelector("#panel-develop .card:nth-of-type(2) .card-title");
+  const devPowerupTitle = $("lbl-dev-powerup-title");
   if (devPowerupTitle) devPowerupTitle.textContent = devCards[_lang].powerupTitle;
-  const devPowerupDesc = document.querySelector("#panel-develop .card:nth-of-type(2) p");
-  if (devPowerupDesc) devPowerupDesc.textContent = devCards[_lang].powerupDesc;
+  const devPowerupDesc = $("lbl-dev-powerup-desc");
+  if (devPowerupDesc) devPowerupDesc.innerHTML = _lang === "pl"
+    ? "Meta pokemon (tier S/A) z IV ≥ 80% poniżej <strong>poziomu 40</strong>. Inwestycja w stardust opłaca się tylko dla meta okazów. Wybierz docelowy poziom, by sprawdzić koszt i CP."
+    : "Meta Pokémon (tier S/A) with IV ≥ 80% below <strong>level 40</strong>. Investing in stardust is only worth it for meta specimens. Choose a target level to estimate cost and CP.";
 
-  const devPurifyTitle = document.querySelector("#panel-develop .card:nth-of-type(3) .card-title");
+  const devPurifyTitle = $("lbl-dev-purify-title");
   if (devPurifyTitle) devPurifyTitle.textContent = devCards[_lang].purifyTitle;
-  const devPurifyDesc = document.querySelector("#panel-develop .card:nth-of-type(3) p");
-  if (devPurifyDesc) devPurifyDesc.textContent = devCards[_lang].purifyDesc;
+  const devPurifyDesc = $("lbl-dev-purify-desc");
+  if (devPurifyDesc) devPurifyDesc.innerHTML = _lang === "pl"
+    ? "Shadow pokemony, których IV <strong>po oczyszczeniu (+2 do każdego, max 15)</strong> osiągnie ≥ 80%. Shadow bonus (+20% ataku) vs. lepsze IV — zapytaj AI co bardziej się opłaca."
+    : "Shadow Pokémon whose IV <strong>after purification (+2 to each, max 15)</strong> will reach ≥ 80%. Shadow bonus (+20% attack) vs. better IVs – ask AI what is best.";
 
-  const devEtmTitle = document.querySelector("#panel-develop .card:nth-of-type(4) .card-title");
-  if (devEtmTitle) devEtmTitle.textContent = devCards[_lang].etmTitle;
-  const devEtmDesc = document.querySelector("#panel-develop .card:nth-of-type(4) p");
-  if (devEtmDesc) devEtmDesc.textContent = devCards[_lang].etmDesc;
+  const devTmTitle = $("lbl-dev-tm-title");
+  if (devTmTitle) devTmTitle.textContent = devCards[_lang].tmTitle;
+  const devTmDesc = $("lbl-dev-tm-desc");
+  if (devTmDesc) devTmDesc.innerHTML = _lang === "pl"
+    ? "Meta pokemon (tier S/A) na <strong>poziomie ≥ 35</strong> — warte sprawdzenia czy mają optymalne ataki. Elite Fast/Charged TM pozwala nauczyć legacy lub ekskluzywnych ruchów."
+    : "Meta Pokémon (tier S/A) at <strong>level ≥ 35</strong> – worth checking if they have optimal moves. Elite Fast/Charged TMs teach legacy or exclusive moves.";
 
   $("poke-search").placeholder = _lang === "pl" ? "Szukaj nazwy…" : "Search name…";
   $("events-search").placeholder = _lang === "pl" ? "Szukaj eventu lub pokemona..." : "Search event or Pokémon...";
@@ -2419,8 +2562,12 @@ function applyLanguage() {
     renderRaid();
     renderPvP();
     renderLocalTeams(_pvpLocalTeams[_pvpLeague]);
+    renderBestByRole(_pvpBestByRole[_pvpLeague]);
     renderDevelop();
     renderEvents();
+    if (chartIvInstance || chartTypesInstance) {
+      updateAnalytics(true);
+    }
   }
 }
 
@@ -2499,6 +2646,18 @@ applyLanguage();
 
 let chartIvInstance = null;
 let chartTypesInstance = null;
+
+function toggleDevCard(contentId) {
+  const content = $(contentId);
+  const icon = $(contentId.replace("-content", "-toggle-icon"));
+  if (content.style.display === "none") {
+    content.style.display = "block";
+    icon.textContent = "▲";
+  } else {
+    content.style.display = "none";
+    icon.textContent = "▼";
+  }
+}
 
 function toggleAnalytics() {
   const content = $("analytics-content");

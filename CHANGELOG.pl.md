@@ -13,6 +13,10 @@ a projekt stosuje się do [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 - **Prognoza CP po Ewolucji**: Oblicza CP dla kolejnych stadiów ewolucyjnych i weryfikuje zgodność z limitami Great League (1500 CP) i Ultra League (2500 CP).
 - **Wykresy i Statystyki Boxa (Dashboard Box Analytics)**: Wdrożono zwijany panel wykresów (rozkład IV oraz typów) za pomocą biblioteki Chart.js, a także licznik i listę unikalnych okazów "Nando" (0% IV).
 - **Import plików CSV z PokéGenie**: Dodano obsługę importu plików `.csv` wyeksportowanych z aplikacji PokéGenie, parsując zeskanowane gatunki, CP, poziomy, IV, płeć, statusy lucky/shadow/purified oraz zestawy ataków, w pełni integrując je ze wszystkimi widokami i analizami.
+- **Rozszerzony Generator Regex**: Dodano przełączniki ochrony specyficznych statusów (Hundo, Nando, Shiny, Shadow, Lucky, Ulubione, Meta S/A, 3★+, PvP, Poziom >= 35) oraz przełączniki wykluczania grup (mityczne, UB, kostiumy, oczyszczone, pomocnicy/buddy, obrońcy gymów, mega) automatycznie dostosowywane do języka gry.
+- **Zwijane Sekcje Panelu Rozwój**: Zastąpiono wysokie tabele w zakładce Rozwój zwijanymi szufladami, aby zoptymalizować widoczność i wysokość strony.
+- **Udoskonalone Sugestie Składów PvP**: Przebudowano algorytm doboru ról na podstawie dynamicznego rozkładu współczynnika wytrzymałości, gwarantując generowanie składów w każdej lidze (w tym Master League) i dodano podsumowanie najlepszych Pokémonów dla każdej roli w plecaku.
+
 
 
 ## [1.1.0] - 2026-07-14

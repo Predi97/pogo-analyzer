@@ -186,7 +186,13 @@ th{
   padding:10px 12px;text-align:left;font-family:var(--fh);
   font-size:10px;letter-spacing:1.4px;text-transform:uppercase;
   color:var(--muted);font-weight:700;border-bottom:1px solid var(--border);white-space:nowrap;
+  user-select:none;position:relative;
 }
+.sortable-header:hover{color:var(--accent);background:rgba(255,255,255,0.02)}
+.sortable-header::after{content:' ↕';opacity:0.25;font-size:9px;margin-left:4px;display:inline-block;transition:opacity .15s}
+.sortable-header:hover::after{opacity:0.6}
+.sort-asc::after{content:' ▲' !important;opacity:1 !important;color:var(--accent)}
+.sort-desc::after{content:' ▼' !important;opacity:1 !important;color:var(--accent)}
 td{padding:9px 12px;border-bottom:1px solid var(--border2);vertical-align:middle}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:rgba(163,240,80,.025)}
@@ -702,7 +708,7 @@ tr:hover td{background:rgba(163,240,80,.025)}
         <a class="btn btn-outline btn-sm" id="btn-inventory-csv" href="/api/export/inventory-csv" download="pogo_inventory.csv" data-tooltip="Stardust, PokéCoiny, Rare Candy + pełna lista ekwipunku">💰 Ekwipunek CSV</a>
       </div>
       <div class="tbl-wrap">
-        <table>
+        <table id="poke-table">
           <thead><tr>
             <th>Pokemon</th><th>CP</th><th>Lvl</th><th>IV%</th>
             <th>A/D/S</th><th>Rok</th><th>Meta</th><th>Tagi</th><th>AI</th>
@@ -717,10 +723,10 @@ tr:hover td{background:rgba(163,240,80,.025)}
       <div class="panel-title">⚔️ Raidy</div>
       <div class="alert alert-info">Ranking uwzględnia bazowe statystyki (DPS×TDO proxy), IV oraz tier listę meta. Posortowane od najlepszego.</div>
       <div class="tbl-wrap">
-        <table>
+        <table id="raid-table">
           <thead><tr>
             <th>#</th><th>Pokemon</th><th>CP</th><th>Lvl</th><th>IV%</th>
-            <th>A/D/S</th><th>Max CP@L50</th><th>Tier</th><th>Tagi</th><th>AI</th>
+            <th>A/D/S</th><th>Max CP@L50</th><th>Najlepszy zestaw (PvE)</th><th>Tier</th><th>Tagi</th><th>AI</th>
           </tr></thead>
           <tbody id="raid-tbody"></tbody>
         </table>
@@ -772,7 +778,7 @@ tr:hover td{background:rgba(163,240,80,.025)}
         <div id="pvp-local-teams-list" style="display: flex; flex-direction: column; gap: 12px;"></div>
       </div>
       <div class="tbl-wrap">
-        <table>
+        <table id="pvp-table">
           <thead><tr>
             <th>#</th><th>Pokemon</th><th>Akt. CP</th><th>CP w lidze</th><th>Lvl</th><th>IV%</th>
             <th>A/D/S</th><th>Rank IV</th><th>Tier</th><th>Tagi</th><th>AI</th>
@@ -1810,19 +1816,35 @@ function renderRaid() {
       p.hundo  ? `<span class="badge badge-hundo">💯</span>` : "",
       p.lucky  ? `<span class="badge badge-lucky">🍀</span>` : "",
     ].join("");
+    
+    const pveOpt = p.pve_optimal && p.pve_optimal.length ? p.pve_optimal.join(" + ") : "—";
+    const matchesOpt = p.pve_optimal && p.pve_optimal.length &&
+                       p.curr_moves && p.curr_moves.includes(p.pve_optimal[0]) &&
+                       (p.curr_moves.includes(p.pve_optimal[1]) || (p.curr_moves.length > 2 && p.curr_moves.includes(p.pve_optimal[1])));
+    const optClass = matchesOpt ? 'style="color: var(--green); font-weight: 600;"' : 'style="color: var(--muted); font-size: 11px;"';
+
     return `<tr>
       <td style="color:var(--muted);font-weight:700;font-family:var(--fm)">${i+1}</td>
-      <td class="name-cell">${p.name}</td>
+      <td class="name-cell">
+        ${p.nick ? `<span data-tooltip="${p.name}">${p.nick}</span>` : p.name}
+        ${p.move1_name ? `
+        <div class="moves-row" style="margin-top: 3px;">
+          <span class="move-tag type-${p.move1_type}" style="font-size: 9px; padding: 2px 4px;">${p.move1_name}</span>
+          ${p.move2_name ? `<span class="move-tag type-${p.move2_type}" style="font-size: 9px; padding: 2px 4px;">${p.move2_name}</span>` : ''}
+          ${p.move3_name ? `<span class="move-tag type-${p.move3_type}" style="font-size: 9px; padding: 2px 4px;">${p.move3_name}</span>` : ''}
+        </div>` : ''}
+      </td>
       <td class="cp-cell">${p.cp}</td>
       <td class="mono">${p.lvl}</td>
       <td class="${ivClass(p.iv_pct)}">${p.iv_pct}%</td>
       <td class="mono">${p.iv_a}/${p.iv_d}/${p.iv_s}</td>
       <td style="color:var(--cyan);font-weight:600;font-family:var(--fm)">${p.max_cp ? p.max_cp.toLocaleString() : "—"}</td>
+      <td><div class="mono" ${optClass}>${pveOpt === "—" ? "—" : (matchesOpt ? '✔️ ' : '⚠️ ') + pveOpt}</div></td>
       <td>${tb || '<span style="color:var(--muted);font-size:10px">—</span>'}</td>
       <td>${tags}</td>
       <td><button class="btn-ai" onclick="analyzeOnePokemon(${S.pokemons.indexOf(S.pokemons.find(x=>x.pid===p.pid&&x.cp===p.cp))})">🤖 AI</button></td>
     </tr>`;
-  }).join("") || `<tr><td colspan="10" style="padding:24px;text-align:center;color:var(--muted)">Brak danych — wgraj plik JSON</td></tr>`;
+  }).join("") || `<tr><td colspan="11" style="padding:24px;text-align:center;color:var(--muted)">Brak danych — wgraj plik JSON</td></tr>`;
 }
 
 // ── PvP ───────────────────────────────────────────────────────────────────────
@@ -2675,6 +2697,80 @@ applyLanguage();
       tooltipEl.classList.remove("visible");
     }
   });
+})();
+
+function makeTableSortable(table) {
+  if (!table) return;
+  const headers = table.querySelectorAll("thead th");
+  headers.forEach((th, index) => {
+    const label = th.textContent.trim();
+    if (label === "AI" || label === "Tagi" || label === "Meta" || label === "Rok" || label === "#" || label === "") return;
+    
+    th.style.cursor = "pointer";
+    th.classList.add("sortable-header");
+    
+    let asc = true;
+    th.addEventListener("click", () => {
+      const tbody = table.querySelector("tbody");
+      if (!tbody) return;
+      const rows = Array.from(tbody.querySelectorAll("tr"));
+      if (rows.length === 0) return;
+      
+      headers.forEach(h => {
+        if (h !== th) {
+          h.classList.remove("sort-asc", "sort-desc");
+        }
+      });
+      
+      rows.sort((a, b) => {
+        const cellA = a.cells[index];
+        const cellB = b.cells[index];
+        
+        let valA = cellA ? cellA.textContent.trim() : "";
+        let valB = cellB ? cellB.textContent.trim() : "";
+        
+        const parseValue = (val) => {
+          if (val === "" || val === "—") return -Infinity;
+          
+          let cleaned = val.replace(/%/g, '').replace(/,/g, '').replace(/\s/g, '').trim();
+          if (cleaned.includes('/')) {
+            const parts = cleaned.split('/').map(Number);
+            if (parts.every(x => !isNaN(x))) {
+              return parts.reduce((x, y) => x + y, 0);
+            }
+          }
+          const num = parseFloat(cleaned);
+          return isNaN(num) ? val.toLowerCase() : num;
+        };
+        
+        const pA = parseValue(valA);
+        const pB = parseValue(valB);
+        
+        if (typeof pA === 'number' && typeof pB === 'number') {
+          return asc ? pA - pB : pB - pA;
+        } else {
+          return asc ? String(pA).localeCompare(String(pB)) : String(pB).localeCompare(String(pA));
+        }
+      });
+      
+      if (asc) {
+        th.classList.add("sort-asc");
+        th.classList.remove("sort-desc");
+      } else {
+        th.classList.add("sort-desc");
+        th.classList.remove("sort-asc");
+      }
+      
+      asc = !asc;
+      tbody.append(...rows);
+    });
+  });
+}
+
+(function initTableSorting() {
+  makeTableSortable($("poke-table"));
+  makeTableSortable($("raid-table"));
+  makeTableSortable($("pvp-table"));
 })();
 
 let chartIvInstance = null;

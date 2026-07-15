@@ -20,6 +20,8 @@ a projekt stosuje się do [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 - **Porównanie Idealnego IV w PvP**: Wprowadzono dynamiczne wyliczanie optymalnej kombinacji IV (Rank 1, np. `0/15/15` dla Umbreona w Great League), wyświetlanej bezpośrednio pod plakietką rangi w tabeli kandydatów PvP.
 - **Aktualizacja Oficjalnych Statystyk Bazowych**: Zaktualizowano szacowane/przedpremierowe statystyki bazowe dla gatunków z Gen 8, Gen 9 i Hisui (Rillaboom, Cinderace, Inteleon, Greedent, Dubwool, Meltan, Coalossal, Flapple, Toxtricity, Cursola, Zacian, Zamazenta, Sneasler, Overqwil, Ursaluna, Pawmot, Revavroom) zgodnie z oficjalnym Game Masterem Pokémon GO, eliminując rozbieżności w kalkulacji CP.
 - **Rozstrzyganie Remisów Iloczynu Statystyk (Tie-Breaker)**: Wdrożono algorytm rozstrzygania remisów identycznego stat productu na korzyść kombinacji z wyższym CP, a następnie wyższym IV obrony i zdrowia, uzyskując 100% zgodności z rankingami PvPoke.
+- **Wyświetlanie Ataków w Raidach**: Wdrożono wyświetlanie posiadanych szybkich i ładowanych ataków w postaci kolorowych plakietek pod nazwą każdego Pokémona w tabeli kandydatów na rajdy. Dodano kolumnę „Najlepszy zestaw (PvE)” z optymalnymi ruchami oraz graficznym oznaczeniem statusu (✔️/⚠️) informującym, czy zestaw jest idealny czy wymaga zmiany za pomocą TM.
+- **Interaktywne Sortowanie Kolumn**: Dodano uniwersalny skrypt sortowania tabel po stronie klienta (dla zakładek Pokemony, Raidy, PvP), pozwalający na kliknięcie nagłówków kolumn i sortowanie rosnąco/malejąco według nazwy, CP, poziomu, procentu IV oraz sumy statystyk IV.
 
 
 

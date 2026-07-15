@@ -1,18 +1,18 @@
 """
 PvP Rank Analyzer — standalone script (pandas + SQLite)
 ========================================================
-Wylicza pvp_gl_rank / pvp_ul_rank dla setek pokemonów naraz.
+Calculates pvp_gl_rank / pvp_ul_rank for hundreds of pokemon at once.
 
-Matematyka (PvPoke-compatible):
+Mathematics (PvPoke-compatible):
   CP        = max(10, floor(EffAtk * sqrt(EffDef) * sqrt(EffSta) * CPM² / 10))
   EffAtk    = (BaseAtk + iv_a) * CPM
   EffDef    = (BaseDef + iv_d) * CPM
   EffHP     = floor((BaseSta + iv_s) * CPM)          ← game-accurate floor
   StatProd  = EffAtk * EffDef * EffHP
-  Rank      = pozycja w rankingu 4096 komboi IV (rank 1 = max StatProd)
+  Rank      = position in the ranking of 4096 IV combinations (rank 1 = max StatProd)
 
-Niższe IV Atk często dają wyższy rank — pozwalają wejść na wyższy poziom
-pod tym samym limitem CP, zyskując więcej bulk.
+Lower Atk IVs often yield a higher rank — they allow the Pokemon to reach a higher level
+under the same CP cap, gaining more bulk.
 """
 
 from __future__ import annotations
@@ -26,15 +26,15 @@ from typing import NamedTuple
 import pandas as pd
 import requests
 
-# ── Konfiguracja ──────────────────────────────────────────────────────────────
+# ── Configuration ──────────────────────────────────────────────────────────────
 
 GL_CAP = 1500
 UL_CAP = 2500
 
-DB_PATH   = Path(__file__).parent / "baza_pogo.db"    # SQLite z projektu
-CSV_PATH  = Path(__file__).parent / "pokemons.csv"     # alternatywnie CSV: Gatunek,CP,Lvl,iv_a,iv_d,iv_s
+DB_PATH   = Path(__file__).parent / "baza_pogo.db"    # SQLite from project
+CSV_PATH  = Path(__file__).parent / "pokemons.csv"     # alternatively CSV: Species,CP,Lvl,iv_a,iv_d,iv_s
 
-# ── Pełna tabela CPM (poziomy 1–51, krok 0.5) ─────────────────────────────
+# ── Full CPM table (levels 1-51, step 0.5) ─────────────────────────────
 
 _CPM_RAW = [
     (1,0.094),(1.5,0.135137432),(2,0.16639787),(2.5,0.192650919),(3,0.21573247),
@@ -68,15 +68,15 @@ def _cpm(level: float) -> float:
     return _CPM_TABLE.get(level, _CPM_RAW[-1][1])
 
 
-# ── Base Stats — PvPoke gamemaster z lokalnym cache ───────────────────────────
-# Źródło: github.com/pvpoke/pvpoke (wszystkie ~900 pokemonów + formy)
-# Cache: SQLite tabela `pvpoke_base_stats`, odświeżany co CACHE_TTL_DAYS dni.
+# ── Base Stats — PvPoke gamemaster with local cache ───────────────────────────
+# Source: github.com/pvpoke/pvpoke (all ~900 pokemon + forms)
+# Cache: SQLite table `pvpoke_base_stats`, refreshed every CACHE_TTL_DAYS days.
 
 PVPOKE_URL     = "https://raw.githubusercontent.com/pvpoke/pvpoke/master/src/data/gamemaster/pokemon.json"
-CACHE_TTL_DAYS = 7  # odśwież raz w tygodniu
+CACHE_TTL_DAYS = 7  # refresh once a week
 
-# Mapowanie nazw z parsera projektu → speciesId PvPoke
-# Format PvPoke: snake_case, formy przez "_" (np. "ninetales_alolan")
+# Map names from project parser → speciesId PvPoke
+# PvPoke format: snake_case, forms separated by "_" (e.g. "ninetales_alolan")
 _FORM_MAP: dict[str, str] = {
     "galarian":  "_galarian",
     "hisuian":   "_hisuian",
@@ -84,7 +84,7 @@ _FORM_MAP: dict[str, str] = {
     "paldean":   "_paldean",
     "female":    "_female",
     "male":      "_male",
-    "normal":    "",           # forma Normal = baza
+    "normal":    "",           # Normal form = base
 }
 
 _ABBREV_MAP = {
@@ -92,7 +92,7 @@ _ABBREV_MAP = {
     "(p)": "paldean",  "(f)": "female",  "(m)": "male",
 }
 
-# Pokemony z wieloma formami — domyślna forma gdy brak specyfikacji
+# Pokemons with multiple forms — default form when specification is missing
 _DEFAULT_FORM: dict[str, str] = {
     "oricorio":  "oricorio_baile",
     "pumpkaboo": "pumpkaboo_average",
@@ -103,32 +103,32 @@ _DEFAULT_FORM: dict[str, str] = {
 
 def _normalize_name(name: str) -> list[str]:
     """
-    Zamienia nazwę wyświetlaną na kandydatów speciesId PvPoke.
-    Obsługuje pełne formy ('Alolan') i skróty ('(A)', '(G)' itp.).
-    Np. 'Meowth (G)' → ['meowth_galarian', 'meowth']
-        'Ninetales (Alolan)' → ['ninetales_alolan', 'ninetales']
+    Translates display name to candidate PvPoke speciesIds.
+    Supports full forms ('Alolan') and abbreviations ('(A)', '(G)', etc.).
+    E.g. 'Meowth (G)' → ['meowth_galarian', 'meowth']
+         'Ninetales (Alolan)' → ['ninetales_alolan', 'ninetales']
     """
     import re
     n = name.lower().strip()
     n = n.replace("♀", "_female").replace("♂", "_male")
 
-    # skróty jednoliterowe w nawiasach: (g)→galarian, (f)→female itp.
-    # usuwamy spację przed nawiasem żeby uniknąć podwójnego __
+    # single letter abbreviations in parentheses: (g)→galarian, (f)→female, etc.
+    # remove space before parenthesis to avoid double underscores
     for abbrev, full in _ABBREV_MAP.items():
         n = re.sub(r"\s*" + re.escape(abbrev), "_" + full, n)
 
-    # pełne nazwy form w nawiasach: (alolan), (galarian) itp.
+    # full form names in parentheses: (alolan), (galarian), etc.
     n = re.sub(r"\s*\(([^)]+)\)", lambda m: "_" + m.group(1).strip(), n)
 
     n = n.replace(" ", "_").replace("-", "_").replace("'", "").replace(".", "")
-    # usuń podwójne podkreślniki
+    # remove double underscores
     n = re.sub(r"_+", "_", n).strip("_")
 
-    # domyślna forma dla pokemonów wieloformowych
+    # default form for multi-form pokemon
     if n in _DEFAULT_FORM:
         return [_DEFAULT_FORM[n], n]
 
-    # fallback: wersja bez sufiksu formy
+    # fallback: version without form suffix
     base = re.sub(
         r"_(galarian|hisuian|alolan|paldean|female|male|normal)$", "", n
     )
@@ -136,7 +136,7 @@ def _normalize_name(name: str) -> list[str]:
 
 
 def _load_pvpoke_cache() -> dict[str, tuple[int, int, int]]:
-    """Wczytuje base stats z SQLite cache (tabela pvpoke_base_stats)."""
+    """Loads base stats from SQLite cache (pvpoke_base_stats table)."""
     if not DB_PATH.exists():
         return {}
     import json as _json
@@ -151,7 +151,7 @@ def _load_pvpoke_cache() -> dict[str, tuple[int, int, int]]:
         age = (datetime.now(timezone.utc) -
                datetime.fromisoformat(row[1])).days
         if age > CACHE_TTL_DAYS:
-            return {}  # wymusi refresh
+            return {}  # forces refresh
         return _json.loads(row[0])
     except sqlite3.OperationalError:
         return {}
@@ -160,7 +160,7 @@ def _load_pvpoke_cache() -> dict[str, tuple[int, int, int]]:
 
 
 def _save_pvpoke_cache(bs_map: dict[str, tuple[int, int, int]]) -> None:
-    """Zapisuje base stats do SQLite cache."""
+    """Saves base stats to SQLite cache."""
     import json as _json
     from datetime import datetime, timezone
     if not DB_PATH.exists():
@@ -180,8 +180,8 @@ def _save_pvpoke_cache(bs_map: dict[str, tuple[int, int, int]]) -> None:
 
 
 def _fetch_pvpoke() -> dict[str, tuple[int, int, int]]:
-    """Pobiera cały gamemaster PvPoke i buduje słownik speciesId → (atk, def, hp)."""
-    print(f"[INFO] Pobieranie PvPoke gamemaster ({PVPOKE_URL.split('/')[2]})…")
+    """Fetches full PvPoke gamemaster and builds speciesId → (atk, def, hp) dictionary."""
+    print(f"[INFO] Fetching PvPoke gamemaster ({PVPOKE_URL.split('/')[2]})…")
     resp = requests.get(PVPOKE_URL, timeout=20)
     resp.raise_for_status()
     result: dict[str, tuple[int, int, int]] = {}
@@ -190,14 +190,14 @@ def _fetch_pvpoke() -> dict[str, tuple[int, int, int]]:
         stats = p.get("baseStats", {})
         if sid and stats.get("atk"):
             result[sid] = (stats["atk"], stats["def"], stats["hp"])
-    print(f"[INFO] Pobrano {len(result)} wpisów z PvPoke gamemaster")
+    print(f"[INFO] Fetched {len(result)} entries from PvPoke gamemaster")
     return result
 
 
 def load_base_stats() -> dict[str, tuple[int, int, int]]:
     """
-    Zwraca słownik nazwa_pokemon → (BaseAtk, BaseDef, BaseSta).
-    Kolejność: SQLite cache → fetch PvPoke → fallback lokalny _BS.
+    Returns pokemon_name → (BaseAtk, BaseDef, BaseSta) dictionary.
+    Order: SQLite cache → fetch PvPoke → local fallback _BS.
     """
     # 1. Cache
     bs_raw = _load_pvpoke_cache()
@@ -206,11 +206,11 @@ def load_base_stats() -> dict[str, tuple[int, int, int]]:
             bs_raw = _fetch_pvpoke()
             _save_pvpoke_cache(bs_raw)
         except Exception as e:
-            print(f"[WARN] Nie można pobrać PvPoke: {e}")
+            print(f"[WARN] Cannot fetch PvPoke: {e}")
 
-    # 2. Fallback na lokalne _BS z projektu jeśli fetch się nie powiódł
+    # 2. Fallback to local _BS from project if fetch failed
     if not bs_raw:
-        print("[WARN] Używam lokalnych base stats (183 meta)")
+        print("[WARN] Using local base stats (183 meta)")
         try:
             import sys; sys.path.insert(0, str(Path(__file__).parent))
             from data.base_stats import _BS
@@ -227,8 +227,8 @@ def resolve_base_stats(
     bs_raw: dict[str, tuple[int, int, int]],
 ) -> tuple[int, int, int] | None:
     """
-    Tłumaczy nazwę wyświetlaną pokemona na base stats z bs_raw.
-    Próbuje kilku wariantów nazwy żeby obsłużyć formy regionalne.
+    Translates display name of a pokemon to base stats from bs_raw.
+    Tries several name variants to support regional forms.
     """
     for candidate in _normalize_name(name):
         if candidate in bs_raw:
@@ -242,7 +242,7 @@ _rank_cache: dict[tuple, list[float]] = {}
 
 
 def _best_cpm_idx(ea: float, ed: float, es: float, cp_limit: int) -> int:
-    """Bisekcja: indeks w _CPM_VALUES dla najwyższego poziomu gdzie CP ≤ cp_limit."""
+    """Bisection: index in _CPM_VALUES for the highest level where CP ≤ cp_limit."""
     cp_base = ea * math.sqrt(ed) * math.sqrt(es) / 10.0
     if cp_base <= 0:
         return -1
@@ -259,7 +259,7 @@ def _stat_product(ea: float, ed: float, es: float, c: float) -> float:
 
 
 def _build_rank_table(ba: int, bd: int, bst: int, cp_limit: int) -> list[float]:
-    """Wszystkie 4096 stat products dla danego gatunku przy danym limicie CP."""
+    """All 4096 stat products for a given species at the CP limit."""
     key = (ba, bd, bst, cp_limit)
     if key in _rank_cache:
         return _rank_cache[key]
@@ -283,8 +283,8 @@ def pvp_rank(ba: int, bd: int, bst: int,
              iv_a: int, iv_d: int, iv_s: int,
              cp_limit: int) -> tuple[int, int, float]:
     """
-    Zwraca (rank, total, pct_of_max).
-    rank 1 = najwyższy stat product dla gatunku w danej lidze.
+    Returns (rank, total, pct_of_max).
+    rank 1 = highest stat product for the species in a given league.
     """
     table = _build_rank_table(ba, bd, bst, cp_limit)
     if not table:
@@ -301,12 +301,12 @@ def pvp_rank(ba: int, bd: int, bst: int,
     return (rank, len(table), pct)
 
 
-# ── Wczytanie danych ─────────────────────────────────────────────────────────
+# ── Loading data ─────────────────────────────────────────────────────────
 
 def load_pokemons() -> pd.DataFrame:
     """
-    Wczytuje pokemony z SQLite (last_upload → parsed JSON) lub CSV.
-    Oczekiwane kolumny: name, iv_a, iv_d, iv_s
+    Loads pokemons from SQLite (last_upload → parsed JSON) or CSV.
+    Expected columns: name, iv_a, iv_d, iv_s
     """
     if DB_PATH.exists():
         import json
@@ -314,9 +314,9 @@ def load_pokemons() -> pd.DataFrame:
         row = con.execute("SELECT raw_json FROM last_upload WHERE id=1").fetchone()
         con.close()
         if not row:
-            raise ValueError("Baza istnieje ale last_upload jest pusta — wgraj najpierw PGSStats.json przez aplikację.")
+            raise ValueError("Database exists but last_upload is empty — upload PGSStats.json through the app first.")
         raw = json.loads(row[0])
-        # Parsujemy surowe PGSStats przez parser projektu
+        # Parse raw PGSStats using project parser
         import sys; sys.path.insert(0, str(Path(__file__).parent))
         from parser import parse_pgo_json
         parsed = parse_pgo_json(raw)
@@ -327,32 +327,32 @@ def load_pokemons() -> pd.DataFrame:
         df = pd.read_csv(CSV_PATH)
     else:
         raise FileNotFoundError(
-            f"Brak źródła danych. Ustaw DB_PATH lub CSV_PATH.\n"
+            f"No data source. Configure DB_PATH or CSV_PATH.\n"
             f"  DB:  {DB_PATH.absolute()}\n"
             f"  CSV: {CSV_PATH.absolute()}"
         )
     required = {"name", "iv_a", "iv_d", "iv_s"}
     missing = required - set(df.columns)
     if missing:
-        raise ValueError(f"Brak kolumn: {missing}. Dostępne: {list(df.columns)}")
+        raise ValueError(f"Missing columns: {missing}. Available: {list(df.columns)}")
     return df
 
 
-# ── Główna logika ─────────────────────────────────────────────────────────────
+# ── Main logic ─────────────────────────────────────────────────────────────
 
 def enrich_with_pvp_ranks(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Dodaje kolumny pvp_gl_rank, pvp_gl_pct, pvp_ul_rank, pvp_ul_pct do DataFrame.
-    Optymalizacja: rank table budowana raz per (gatunek, liga), cached.
+    Adds pvp_gl_rank, pvp_gl_pct, pvp_ul_rank, pvp_ul_pct columns to DataFrame.
+    Optimization: rank table built once per (species, league), cached.
     """
     bs_raw = load_base_stats()
 
-    # Raport pokrycia
+    # Coverage report
     unresolved = [n for n in df["name"].unique() if resolve_base_stats(n, bs_raw) is None]
     if unresolved:
-        print(f"[WARN] Brak base stats dla {len(unresolved)} gatunków: {unresolved[:8]}{'…' if len(unresolved)>8 else ''}")
+        print(f"[WARN] Missing base stats for {len(unresolved)} species: {unresolved[:8]}{'…' if len(unresolved)>8 else ''}")
 
-    # apply po wierszach — cache rank table sprawia, że to O(n) nie O(n×4096)
+    # apply row-wise — cached rank table makes it O(n) instead of O(n×4096)
     def _row_ranks(row) -> pd.Series:
         bs = resolve_base_stats(row["name"], bs_raw)
         if not bs:
@@ -370,16 +370,16 @@ def enrich_with_pvp_ranks(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def save_results(df: pd.DataFrame) -> None:
-    """Zapisuje wyniki z powrotem do SQLite i do CSV."""
+    """Saves results back to SQLite and to CSV."""
     if DB_PATH.exists():
         con = sqlite3.connect(DB_PATH)
         df.to_sql("pokemons_ranked", con, if_exists="replace", index=False)
         con.close()
-        print(f"[OK] Zapisano do {DB_PATH} (tabela: pokemons_ranked)")
+        print(f"[OK] Saved to {DB_PATH} (table: pokemons_ranked)")
 
     out_csv = Path("pokemons_ranked.csv")
     df.to_csv(out_csv, index=False)
-    print(f"[OK] Zapisano do {out_csv}")
+    print(f"[OK] Saved to {out_csv}")
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
@@ -387,23 +387,23 @@ def save_results(df: pd.DataFrame) -> None:
 if __name__ == "__main__":
     import time
 
-    print("Wczytywanie danych…")
+    print("Loading data…")
     df = load_pokemons()
-    print(f"  {len(df)} pokemonów, {df['name'].nunique()} gatunków")
+    print(f"  {len(df)} pokemons, {df['name'].nunique()} species")
 
-    print("Obliczanie ranków PvP…")
+    print("Calculating PvP ranks…")
     t0     = time.perf_counter()
     result = enrich_with_pvp_ranks(df)
     elapsed = time.perf_counter() - t0
 
-    print(f"  Gotowe w {elapsed:.2f}s")
-    print(f"  Rank tables w cache: {len(_rank_cache)}")
+    print(f"  Ready in {elapsed:.2f}s")
+    print(f"  Rank tables in cache: {len(_rank_cache)}")
 
     cols = ["name", "iv_a", "iv_d", "iv_s",
             "pvp_gl_rank", "pvp_gl_pct",
             "pvp_ul_rank", "pvp_ul_pct"]
     avail = [c for c in cols if c in result.columns]
-    print("\nPodgląd wyników:")
+    print("\nPreview of results:")
     print(result[avail].head(20).to_string(index=False))
 
     save_results(result)

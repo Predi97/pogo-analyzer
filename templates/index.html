@@ -1485,6 +1485,30 @@ function renderEvents() {
     return true;
   });
 
+  // Sort list: Active (ending soonest) -> Upcoming (starting soonest) -> Ended (recently ended first)
+  list.sort((a, b) => {
+    const statusOrder = { active: 1, upcoming: 2, ended: 3 };
+    const orderA = statusOrder[a.status] || 99;
+    const orderB = statusOrder[b.status] || 99;
+    
+    if (orderA !== orderB) {
+      return orderA - orderB;
+    }
+    
+    const startA = a.start ? new Date(a.start) : new Date(0);
+    const startB = b.start ? new Date(b.start) : new Date(0);
+    const endA = a.end ? new Date(a.end) : new Date(0);
+    const endB = b.end ? new Date(b.end) : new Date(0);
+    
+    if (a.status === "active") {
+      return endA - endB;
+    } else if (a.status === "upcoming") {
+      return startA - startB;
+    } else {
+      return endB - endA;
+    }
+  });
+
   function getEventTimeStatus(ev) {
     if (!ev.start || !ev.end) return "";
     const now = new Date();
@@ -1516,7 +1540,18 @@ function renderEvents() {
 
   $("events-list").innerHTML = list.map(ev => {
     const statusCls   = { active:"status-active", upcoming:"status-upcoming", ended:"status-ended" }[ev.status] || "";
-    const statusLabel = { active:"🟢 Aktywny", upcoming:`🔵 Za ${ev.days_until}d`, ended:"⬜ Zakończony" }[ev.status] || ev.status;
+    let statusLabel = "";
+    if (ev.status === "active") {
+      statusLabel = "🟢 Aktywny";
+    } else if (ev.status === "upcoming") {
+      if (ev.days_until !== null && ev.days_until !== undefined) {
+        statusLabel = ev.days_until > 0 ? `🔵 Za ${ev.days_until}d` : "🔵 Za <24h";
+      } else {
+        statusLabel = "🔵 Nadchodzący";
+      }
+    } else {
+      statusLabel = "⬜ Zakończony";
+    }
     const bonuses = ev.bonuses.slice(0,6).map(b => `<span style="font-size:11px">• ${typeof b === "string" ? b : JSON.stringify(b)}</span>`).join("<br>");
     
     // Render featured pokemons cards

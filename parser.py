@@ -9,12 +9,27 @@ from data.pokedex import _FORM_SUFFIXES, _resolve_item_name
 def _pokemon_name(pid: int, form_name: str) -> str:
     from data.pokedex import DEX
     base = DEX.get(pid, f"#{pid}")
-    if not form_name or form_name == "Unset":
+    if not form_name or form_name == "Unset" or form_name == "Normal":
         return base
+    
+    # Check for predefined suffixes that get single-letter abbreviation
+    from data.pokedex import _FORM_SUFFIXES
     for sfx in _FORM_SUFFIXES:
         if form_name.endswith(sfx):
-            return base if sfx == "Normal" else f"{base} ({sfx[0]})"
-    return base
+            if sfx == "Normal":
+                return base
+            return f"{base} ({sfx[0]})"
+            
+    # Clean the form name (e.g. "ZacianCrownedSword" -> "Zacian Crowned Sword", "CROWNED_SWORD" -> "Crowned Sword")
+    import re
+    spaced = re.sub(r'(?<=[a-z])(?=[A-Z])', ' ', form_name)
+    clean_form = spaced.replace("_", " ").title()
+    if clean_form.lower().startswith(base.lower()):
+        clean_form = clean_form[len(base):].strip()
+        
+    if not clean_form:
+        return base
+    return f"{base} ({clean_form})"
 
 
 def parse_pgo_json(raw: dict) -> dict:

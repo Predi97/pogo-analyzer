@@ -149,6 +149,29 @@ def pvp_iv_rank(pid: int, iv_a: int, iv_d: int, iv_s: int,
     return (rank, len(table), pct)
 
 
+def pvp_ideal_ivs(pid: int, cp_limit: int) -> tuple[int, int, int]:
+    """Finds the Rank 1 (highest stat product) IV combination for a species."""
+    bs = _BS.get(pid)
+    if not bs:
+        return (0, 0, 0)
+    ba, bd, bst = bs
+    best_sp = -1.0
+    best_ivs = (0, 0, 0)
+    for ia in range(16):
+        ea = ba + ia
+        for id_ in range(16):
+            ed = bd + id_
+            for is_ in range(16):
+                es = bst + is_
+                idx = _best_cpm_idx(ea, ed, es, cp_limit)
+                if idx >= 0:
+                    sp = _stat_product(ea, ed, es, _CPM_VALUES[idx])
+                    if sp > best_sp:
+                        best_sp = sp
+                        best_ivs = (ia, id_, is_)
+    return best_ivs
+
+
 # ── Tier helpers (used by all scoring functions) ──────────────────────────────
 
 _TIER_ORDER = {"S": 0, "A": 1, "B": 2, "C": 3, "D": 4}

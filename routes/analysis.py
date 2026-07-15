@@ -5,7 +5,7 @@ from data.pokedex import DEX
 from scoring import (
     _TIER_ORDER, _best_tier, _tier_for,
     max_cp, pvp_cp, pvp_iv_rank, pvp_score, raid_score,
-    calculate_cp_for_level,
+    calculate_cp_for_level, pvp_ideal_ivs,
 )
 from services.tiers import get_tier_list
 from state import _state
@@ -213,6 +213,7 @@ def api_pvp_candidates():
         lvl, best_cp          = pvp_cp(p["pid"], p["iv_a"], p["iv_d"], p["iv_s"], cp_limit)
         rank, total, rank_pct = pvp_iv_rank(p["pid"], p["iv_a"], p["iv_d"], p["iv_s"], cp_limit)
         tier_data = _tier_for(p["name"], tiers)
+        opt_a, opt_d, opt_s = pvp_ideal_ivs(p["pid"], cp_limit)
         scored.append({
             **p,
             "pvp_score":      round(score),
@@ -223,6 +224,7 @@ def api_pvp_candidates():
             "pvp_rank":       rank,
             "pvp_rank_total": total,
             "pvp_rank_pct":   rank_pct,
+            "pvp_ideal":      f"{opt_a}/{opt_d}/{opt_s}",
         })
     scored.sort(key=lambda x: -x["pvp_score"])
     top_candidates = scored[:60]

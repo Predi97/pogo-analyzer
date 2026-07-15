@@ -2024,7 +2024,10 @@ function renderPvP() {
       <td class="mono">${p.pvp_lvl || p.lvl}</td>
       <td class="${ivClass(p.iv_pct)}">${p.iv_pct}%</td>
       <td class="mono">${p.iv_a}/${p.iv_d}/${p.iv_s}</td>
-      <td>${rankBadge}</td>
+      <td>
+        ${rankBadge}
+        <div style="font-size: 9px; color: var(--muted); margin-top: 2px; font-family: var(--fm); white-space: nowrap;">Ideal: ${p.pvp_ideal || "—"}</div>
+      </td>
       <td>${tb || '<span style="color:var(--muted);font-size:10px">—</span>'}</td>
       <td>${tags}</td>
       <td><button class="btn-ai" onclick="analyzeOnePokemon(${S.pokemons.indexOf(S.pokemons.find(x=>x.pid===p.pid&&x.cp===p.cp))})">🤖 AI</button></td>

@@ -4,6 +4,7 @@ from typing import Optional
 
 from data.base_stats import _BS, _EVOLVE_CHAIN, _cpm
 from data.cpm import _CPM_VALUES
+from data.pokedex import DEX
 
 
 # ── Raid scoring ──────────────────────────────────────────────────────────────
@@ -102,7 +103,7 @@ def _best_cpm_idx(ea: float, ed: float, es: float, cp_limit: int) -> int:
 
 
 def _build_rank_table(pid: int, cp_limit: int) -> list:
-    """All 4096 stat products for a species at a given CP cap, sorted ASC. Cached."""
+    """All stat products for a species at a given CP cap, sorted ASC. Respects mythical floors. Cached."""
     key = (pid, cp_limit)
     if key in _rank_cache:
         return _rank_cache[key]
@@ -111,12 +112,20 @@ def _build_rank_table(pid: int, cp_limit: int) -> list:
         _rank_cache[key] = []
         return []
     ba, bd, bst = bs
+    
+    # Restrict untradeable research/raid mythicals to minimum IV floor of 10/10/10
+    name = DEX.get(pid)
+    iv_floor = 10 if (name and name in {
+        "Mew", "Celebi", "Jirachi", "Victini", "Meloetta", "Shaymin", "Zarude", 
+        "Diancie", "Keldeo", "Magearna", "Hoopa", "Deoxys", "Darkrai", "Genesect"
+    }) else 0
+
     products: list[float] = []
-    for id_ in range(16):
+    for id_ in range(iv_floor, 16):
         ed = bd + id_
-        for is_ in range(16):
+        for is_ in range(iv_floor, 16):
             es = bst + is_
-            for ia in range(16):
+            for ia in range(iv_floor, 16):
                 ea  = ba + ia
                 idx = _best_cpm_idx(ea, ed, es, cp_limit)
                 products.append(
@@ -150,18 +159,26 @@ def pvp_iv_rank(pid: int, iv_a: int, iv_d: int, iv_s: int,
 
 
 def pvp_ideal_ivs(pid: int, cp_limit: int) -> tuple[int, int, int]:
-    """Finds the Rank 1 (highest stat product) IV combination for a species."""
+    """Finds the Rank 1 (highest stat product) IV combination for a species, respecting mythical floors."""
     bs = _BS.get(pid)
     if not bs:
         return (0, 0, 0)
     ba, bd, bst = bs
+    
+    # Restrict untradeable research/raid mythicals to minimum IV floor of 10/10/10
+    name = DEX.get(pid)
+    iv_floor = 10 if (name and name in {
+        "Mew", "Celebi", "Jirachi", "Victini", "Meloetta", "Shaymin", "Zarude", 
+        "Diancie", "Keldeo", "Magearna", "Hoopa", "Deoxys", "Darkrai", "Genesect"
+    }) else 0
+    
     best_sp = -1.0
     best_ivs = (0, 0, 0)
-    for ia in range(16):
+    for ia in range(iv_floor, 16):
         ea = ba + ia
-        for id_ in range(16):
+        for id_ in range(iv_floor, 16):
             ed = bd + id_
-            for is_ in range(16):
+            for is_ in range(iv_floor, 16):
                 es = bst + is_
                 idx = _best_cpm_idx(ea, ed, es, cp_limit)
                 if idx >= 0:

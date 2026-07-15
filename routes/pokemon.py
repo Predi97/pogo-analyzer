@@ -109,7 +109,7 @@ def api_items():
 
 @bp.route("/api/export/raw-csv")
 def export_raw_csv():
-    """Eksport 1:1 z surowego PGSStats.json — wszystkie pola + nazwa gatunku."""
+    """1:1 export from raw PGSStats.json — all fields + species name."""
     db = get_db()
     row = db.execute("SELECT raw_json FROM last_upload WHERE id=1").fetchone()
     if not row:
@@ -127,7 +127,7 @@ def export_raw_csv():
         DEX = {}
 
     def _cell(v):
-        """Spłaszcz zagnieżdżone struktury do stringa."""
+        """Flatten nested structures to a string."""
         if v is None or v == "" or v == [] or v == {}:
             return ""
         if isinstance(v, bool):
@@ -144,7 +144,7 @@ def export_raw_csv():
         except Exception:
             return ms
 
-    # zbierz wszystkie unikalne klucze (zachowaj kolejność: ważne pola pierwsze)
+    # Gather all unique keys (preserve order: important fields first)
     priority = [
         "name", "pokemonId", "nickname", "cp", "cpMultiplier",
         "individualAttack", "individualDefense", "individualStamina",
@@ -194,7 +194,7 @@ def export_raw_csv():
 
 @bp.route("/api/export/inventory-csv")
 def export_inventory_csv():
-    """Eksport ekwipunku: stardust, coiny, rare candy + pełna lista itemów."""
+    """Export inventory: stardust, coins, rare candy + complete items list."""
     db  = get_db()
     row = db.execute("SELECT raw_json FROM last_upload WHERE id=1").fetchone()
     if not row:
@@ -204,7 +204,7 @@ def export_inventory_csv():
     items   = raw.get("items", [])
     account = raw.get("account", {})
 
-    # stardust / coiny z currencyBalance
+    # stardust / coins from currencyBalance
     currencies = {c["currencyType"]: c["quantity"]
                   for c in account.get("currencyBalance", [])
                   if "currencyType" in c}
@@ -212,14 +212,14 @@ def export_inventory_csv():
     out    = io.StringIO()
     writer = csv.writer(out)
 
-    # ── Sekcja 1: podsumowanie walut ─────────────────────────────────────────
-    writer.writerow(["=== WALUTY ===", ""])
-    writer.writerow(["Zasób", "Ilość"])
+    # ── Section 1: currency summary ─────────────────────────────────────────
+    writer.writerow(["=== CURRENCIES ===", ""])
+    writer.writerow(["Resource", "Quantity"])
     writer.writerow(["Stardust",    currencies.get("STARDUST", 0)])
-    writer.writerow(["PokéCoiny",   currencies.get("POKECOIN", 0)])
+    writer.writerow(["PokéCoins",   currencies.get("POKECOIN", 0)])
     writer.writerow([])
 
-    # ── Sekcja 2: pełna lista ekwipunku ──────────────────────────────────────
+    # ── Section 2: complete inventory list ──────────────────────────────────
     writer.writerow(["=== EKWIPUNEK ===", "", "", ""])
     if items:
         all_keys = list(dict.fromkeys(k for it in items for k in it))

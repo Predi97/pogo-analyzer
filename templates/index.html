@@ -576,8 +576,7 @@ tr:hover td{background:rgba(163,240,80,.025)}
       <div class="upload-title">PokéGO Analyzer</div>
       <div class="upload-sub" id="upload-sub-text">Wgraj plik <strong>PGSStats.json</strong> z aplikacji PGSharp<br>aby przeanalizować swoje konto</div>
       <div class="upload-hint" id="upload-hint-text" style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.6">
-        📱 <a href="https://www.pgsharp.com/" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none">PGSharp</a>
-        &nbsp;→&nbsp; Menu &nbsp;→&nbsp; <strong>PGSStats</strong> &nbsp;→&nbsp; Eksportuj / Export
+        📱 <a href="https://www.pgsharp.com/" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none">PGSharp Settings</a> &nbsp;→&nbsp; Export account data na <strong>ON</strong> (na samym dole) &nbsp;→&nbsp; wybierz folder dla pliku <strong>pgsstats.json</strong>
       </div>
       <div class="upload-tag">📌 Plik czytany lokalnie — dane nie opuszczają maszyny</div>
     </div>
@@ -2231,8 +2230,8 @@ function applyLanguage() {
 
   const uploadHint = $("upload-hint-text");
   if (uploadHint) uploadHint.innerHTML = _lang === "pl"
-    ? `📱 <a href="https://www.pgsharp.com/" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none">PGSharp</a> &nbsp;→&nbsp; Menu &nbsp;→&nbsp; <strong>PGSStats</strong> &nbsp;→&nbsp; Eksportuj / Export`
-    : `📱 <a href="https://www.pgsharp.com/" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none">PGSharp</a> &nbsp;→&nbsp; Menu &nbsp;→&nbsp; <strong>PGSStats</strong> &nbsp;→&nbsp; Export`;
+    ? `📱 <a href="https://www.pgsharp.com/" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none">PGSharp Settings</a> &nbsp;→&nbsp; Export account data na <strong>ON</strong> (na samym dole) &nbsp;→&nbsp; wybierz folder dla pliku <strong>pgsstats.json</strong>`
+    : `📱 <a href="https://www.pgsharp.com/" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none">PGSharp Settings</a> &nbsp;→&nbsp; Export account data to <strong>ON</strong> (at the bottom) &nbsp;→&nbsp; select folder for <strong>pgsstats.json</strong>`;
 
   const uploadTag = document.querySelector(".upload-tag");
   if (uploadTag) uploadTag.textContent = _lang === "pl"

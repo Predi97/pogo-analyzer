@@ -67,9 +67,11 @@ This application is designed to work exclusively with the **`PGSStats.json`** ex
 ### How to get your `PGSStats.json`:
 
 1. Open **PGSharp** on your device.
-2. Go to **Menu → PGSStats** (or the export / share icon).
-3. Tap **Export** and send the `PGSStats.json` file to your computer (e.g., via Google Drive, Discord, or USB cable).
-4. Upload the file in the **PokéGO Analyzer** dashboard to unlock all features.
+2. Open **PGSharp Settings / Options**.
+3. Scroll to the very bottom and turn **Export account data** to **ON**.
+4. Select a folder on your phone where the `pgsstats.json` file should be automatically saved upon each login.
+5. Transfer this `pgsstats.json` file to your computer (e.g., via Google Drive, Discord, or USB cable).
+6. Upload the file in the **PokéGO Analyzer** dashboard to unlock all features.
 
 > [!NOTE]
 > `PGSStats.json` contains your complete Pokémon box, item inventory, trainer profile, and battle statistics — all in a single file. The analyzer processes it entirely **locally** — no data is sent to any external server.

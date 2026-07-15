@@ -67,9 +67,11 @@ Aplikacja jest zaprojektowana do pracy wyłącznie z plikiem eksportu **`PGSStat
 ### Jak uzyskać plik `PGSStats.json`?
 
 1. Otwórz **PGSharp** na swoim urządzeniu.
-2. Przejdź do **Menu → PGSStats** (lub ikony eksportu / udostępniania).
-3. Kliknij **Eksportuj** i prześlij plik `PGSStats.json` na swój komputer (np. przez Google Drive, Discorda lub kabel USB).
-4. Wgraj plik w dashboardzie **PokéGO Analyzer**, aby odblokować wszystkie funkcje.
+2. Wejdź w opcje/ustawienia **PGSharp Settings**.
+3. Na samym dole włącz opcję **Export account data** na **ON**.
+4. Wybierz folder na telefonie, w którym ma się automatycznie zapisywać plik `pgsstats.json` przy każdym logowaniu.
+5. Prześlij wygenerowany plik `pgsstats.json` na swój komputer (np. przez Dysk Google, Discord lub kabel USB).
+6. Wgraj plik w dashboardzie **PokéGO Analyzer**, aby odblokować wszystkie funkcje.
 
 > [!NOTE]
 > `PGSStats.json` zawiera pełny box Pokémonów, ekwipunek przedmiotów, profil trenera i statystyki walk — wszystko w jednym pliku. Analizator przetwarza dane w całości **lokalnie** — żadne dane nie są wysyłane na zewnętrzny serwer.

@@ -513,6 +513,7 @@ tr:hover td{background:rgba(163,240,80,.025)}
   transform: translateY(0);
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -546,6 +547,7 @@ tr:hover td{background:rgba(163,240,80,.025)}
     <div class="stat-chip">Pokemon <b id="s-total">0</b></div>
     <div class="stat-chip">✨ Shiny <b id="s-shiny">0</b></div>
     <div class="stat-chip">💯 Hundo <b id="s-hundo">0</b></div>
+    <div class="stat-chip">❌ Nando <b id="s-nando">0</b></div>
     <div class="stat-chip">👻 Shadow <b id="s-shadow">0</b></div>
     <div class="stat-chip">🍀 Lucky <b id="s-lucky">0</b></div>
     <div class="stat-chip">⭐ Stardust <b id="s-dust">—</b></div>
@@ -589,6 +591,34 @@ tr:hover td{background:rgba(163,240,80,.025)}
     <!-- ── TAB: Pokemony ───────────────────────────────────────── -->
     <div class="panel active" id="panel-pokemon">
       <div class="panel-title">🎮 Pokemony</div>
+
+      <!-- Box Analytics Section -->
+      <div class="card" style="margin-bottom:16px; border-color: rgba(163,240,80,.15);">
+        <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleAnalytics()">
+          <span>📊 Statystyki Boxa / Box Analytics</span>
+          <span id="analytics-toggle-icon">▼</span>
+        </div>
+        <div id="analytics-content" style="display:none; padding-top:12px;">
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:16px;">
+            <div style="background:var(--bg3); padding:16px; border-radius:8px;">
+              <h4 style="margin-bottom:12px; font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Rozkład IV / IV Distribution</h4>
+              <div style="height:150px; position:relative;"><canvas id="chart-iv"></canvas></div>
+            </div>
+            <div style="background:var(--bg3); padding:16px; border-radius:8px;">
+              <h4 style="margin-bottom:12px; font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Rozkład Typów / Type Distribution</h4>
+              <div style="height:150px; position:relative;"><canvas id="chart-types"></canvas></div>
+            </div>
+          </div>
+          <div style="margin-top:16px; background:var(--bg3); padding:12px 16px; border-radius:8px; display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
+            <div>
+              <span style="font-size:12px; color:var(--muted);">Rzadkie okazy (0% IV - Nando):</span>
+              <strong id="nando-list-label" style="font-size:13px; color:var(--red); margin-left:6px;">0</strong>
+            </div>
+            <div id="nando-names-container" style="font-size:11px; color:var(--text); display:flex; gap:6px; flex-wrap:wrap;"></div>
+          </div>
+        </div>
+      </div>
+
       <div class="toolbar">
         <input type="text" id="poke-search" placeholder="Szukaj nazwy…">
         <select id="poke-filter">
@@ -803,7 +833,7 @@ tr:hover td{background:rgba(163,240,80,.025)}
         <div class="tbl-wrap"><table>
           <thead><tr>
             <th>Pokemon (pre-evo)</th><th>CP</th><th>Lvl</th><th>IV%</th>
-            <th>→ Ewolucja</th><th>Tier</th><th>Tagi</th><th>AI</th>
+            <th>→ Prognoza Ewolucji</th><th>Tier</th><th>Tagi</th><th>AI</th>
           </tr></thead>
           <tbody id="dev-evolve-tbody"></tbody>
         </table></div>
@@ -813,12 +843,12 @@ tr:hover td{background:rgba(163,240,80,.025)}
         <div class="card-title">⚡ Do ulepszenia (Power Up)</div>
         <p style="font-size:12px;color:var(--muted);margin-bottom:12px">
           Meta pokemon (tier S/A) z IV ≥ 80% poniżej <strong>poziomu 40</strong>.
-          Inwestycja w stardust opłaca się tylko dla meta okazów.
+          Inwestycja w stardust opłaca się tylko dla meta okazów. Wybierz docelowy poziom, by sprawdzić koszt i CP.
         </p>
         <div class="tbl-wrap"><table>
           <thead><tr>
             <th>Pokemon</th><th>CP</th><th>Lvl</th><th>IV%</th>
-            <th>A/D/S</th><th>Tier</th><th>Tagi</th><th>AI</th>
+            <th>A/D/S</th><th>Poziom docelowy</th><th>Prognoza kosztu / CP</th><th>AI</th>
           </tr></thead>
           <tbody id="dev-powerup-tbody"></tbody>
         </table></div>
@@ -847,8 +877,7 @@ tr:hover td{background:rgba(163,240,80,.025)}
         </p>
         <div class="tbl-wrap"><table>
           <thead><tr>
-            <th>Pokemon</th><th>CP</th><th>Lvl</th><th>IV%</th>
-            <th>Tier</th><th>Tagi</th><th>AI</th>
+            <th>Pokemon</th><th>CP</th><th>Obecne ataki</th><th>Zestaw PvP</th><th>Zestaw PvE (Raid)</th><th>Sugestia TM</th>
           </tr></thead>
           <tbody id="dev-tm-tbody"></tbody>
         </table></div>
@@ -1032,10 +1061,12 @@ async function onUploadSuccess(stats, player, pvp_stats) {
   $("s-total").textContent  = stats.total;
   $("s-shiny").textContent  = stats.shinies;
   $("s-hundo").textContent  = stats.hundos;
+  $("s-nando").textContent  = stats.nandos || 0;
   $("s-shadow").textContent = stats.shadows;
   $("s-lucky").textContent  = stats.luckies;
   $("tb-poke").textContent  = stats.total;
   if (stats.stardust) $("s-dust").textContent = stats.stardust.toLocaleString("pl-PL");
+  updateAnalytics();
 
   // Handle Player Card in Sidebar
   if (player) {
@@ -1914,12 +1945,20 @@ function renderDevelop() {
     const tags = [p.shiny ? `<span class="badge badge-shiny">✨</span>` : "",
                   p.lucky ? `<span class="badge badge-lucky">🍀</span>` : ""].join("");
     const tc = p.final_tier === "S" ? "badge-s" : "badge-a";
+    
+    let limitBadge = "";
+    if (p.final_cp > 2500) {
+      limitBadge = ` <span class="badge badge-err" style="font-size:9px;" data-tooltip="Przekracza limit Ultra League (>2500)">>2500</span>`;
+    } else if (p.final_cp > 1500) {
+      limitBadge = ` <span class="badge badge-warn" style="font-size:9px;" data-tooltip="Przekracza limit Great League (>1500)">>1500</span>`;
+    }
+
     return `<tr>
       <td class="name-cell">${p.name}</td>
       <td class="cp-cell">${p.cp}</td>
       <td class="mono">${p.lvl}</td>
       <td class="${ivClass(p.iv_pct)}">${p.iv_pct}%</td>
-      <td style="color:var(--cyan);font-weight:700">→ ${p.final_name}</td>
+      <td style="color:var(--cyan);font-weight:700">→ ${p.final_name} <span style="color:var(--text);font-weight:400;font-size:11px;">(CP ${p.final_cp || '?'})</span>${limitBadge}</td>
       <td><span class="badge ${tc}">${p.final_tier}</span></td>
       <td>${tags}</td>
       <td><button class="btn-ai" onclick="analyzeOnePokemon(${_devPokeIdx(p)})">🤖 AI</button></td>
@@ -1927,19 +1966,27 @@ function renderDevelop() {
   }).join("") || `<tr><td colspan="8" style="padding:16px;text-align:center;color:var(--muted)">Brak kandydatów — potrzeba IV≥80% + meta końcowa forma</td></tr>`;
 
   $("dev-powerup-tbody").innerHTML = d.power_up.map(p => {
-    const tc = p.best_tier === "S" ? "badge-s" : "badge-a";
-    const tags = [p.shiny  ? `<span class="badge badge-shiny">✨</span>` : "",
-                  p.shadow ? `<span class="badge badge-shadow">Shadow</span>` : "",
-                  p.lucky  ? `<span class="badge badge-lucky">🍀</span>` : ""].join("");
+    const pIdx = _devPokeIdx(p);
+    let options = '<option value="">Lvl ↓</option>';
+    let minLvl = p.lvl + 0.5;
+    if (minLvl <= 50) {
+      for (let l = minLvl; l <= 50; l += 0.5) {
+        options += `<option value="${l}">${l}</option>`;
+      }
+    }
     return `<tr>
       <td class="name-cell">${p.name}</td>
       <td class="cp-cell">${p.cp}</td>
       <td class="mono">${p.lvl}</td>
       <td class="${ivClass(p.iv_pct)}">${p.iv_pct}%</td>
       <td class="mono">${p.iv_a}/${p.iv_d}/${p.iv_s}</td>
-      <td><span class="badge ${tc}">${p.best_tier}</span></td>
-      <td>${tags}</td>
-      <td><button class="btn-ai" onclick="analyzeOnePokemon(${_devPokeIdx(p)})">🤖 AI</button></td>
+      <td>
+        <select onchange="recalcPowerup(this, ${pIdx})" style="width:75px; padding:2px; font-size:11px; background:var(--bg3); color:var(--text); border:1px solid var(--border); border-radius:4px;">
+          ${options}
+        </select>
+      </td>
+      <td class="calc-cell" id="pow-calc-${pIdx}" style="min-width:120px;"><span style="color:var(--muted);font-size:10px">—</span></td>
+      <td><button class="btn-ai" onclick="analyzeOnePokemon(${pIdx})">🤖 AI</button></td>
     </tr>`;
   }).join("") || `<tr><td colspan="8" style="padding:16px;text-align:center;color:var(--muted)">Brak kandydatów — meta pokemony poniżej L40 z IV≥80%</td></tr>`;
 
@@ -1958,20 +2005,29 @@ function renderDevelop() {
   }).join("") || `<tr><td colspan="7" style="padding:16px;text-align:center;color:var(--muted)">Brak shadow pokemonów z IV≥78 przed oczyszczeniem</td></tr>`;
 
   $("dev-tm-tbody").innerHTML = d.elite_tm.map(p => {
-    const tc = p.best_tier === "S" ? "badge-s" : "badge-a";
-    const tags = [p.shiny  ? `<span class="badge badge-shiny">✨</span>` : "",
-                  p.shadow ? `<span class="badge badge-shadow">Shadow</span>` : "",
-                  p.lucky  ? `<span class="badge badge-lucky">🍀</span>` : ""].join("");
+    const pidx = _devPokeIdx(p);
+    const pvpOpt = p.pvp_optimal && p.pvp_optimal.length ? p.pvp_optimal.join(" + ") : "—";
+    const pveOpt = p.pve_optimal && p.pve_optimal.length ? p.pve_optimal.join(" + ") : "—";
+    
+    let allWarnings = [...new Set((p.pvp_warnings || []).concat(p.pve_warnings || []))];
+    let tmLabel = "Zgodne / OK";
+    let tmStyle = "color:var(--green); font-size:10px;";
+    if (allWarnings.length > 0) {
+      tmLabel = allWarnings.map(w => w.split(" ").slice(2).join(" ")).join("<br>");
+      tmStyle = "color:var(--yellow); font-size:10px; line-height:1.25;";
+    }
+    
+    const currMoves = [p.move1_name, p.move2_name, p.move3_name].filter(Boolean).join(" + ");
+
     return `<tr>
       <td class="name-cell">${p.name}</td>
       <td class="cp-cell">${p.cp}</td>
-      <td class="mono">${p.lvl}</td>
-      <td class="${ivClass(p.iv_pct)}">${p.iv_pct}%</td>
-      <td><span class="badge ${tc}">${p.best_tier}</span></td>
-      <td>${tags}</td>
-      <td><button class="btn-ai" onclick="analyzeOnePokemon(${_devPokeIdx(p)})">🤖 AI</button></td>
+      <td style="font-size:10px; color:var(--muted); line-height:1.25;">${currMoves}</td>
+      <td style="font-size:10px; color:var(--text); line-height:1.25;">${pvpOpt}</td>
+      <td style="font-size:10px; color:var(--text); line-height:1.25;">${pveOpt}</td>
+      <td style="${tmStyle}">${tmLabel}</td>
     </tr>`;
-  }).join("") || `<tr><td colspan="7" style="padding:16px;text-align:center;color:var(--muted)">Brak kandydatów — meta pokemony na L≥35</td></tr>`;
+  }).join("") || `<tr><td colspan="6" style="padding:16px;text-align:center;color:var(--muted)">Brak kandydatów — meta pokemony na L≥35</td></tr>`;
 }
 
 $("btn-save-cfg").addEventListener("click", async () => {
@@ -2440,6 +2496,163 @@ applyLanguage();
     }
   });
 })();
+
+let chartIvInstance = null;
+let chartTypesInstance = null;
+
+function toggleAnalytics() {
+  const content = $("analytics-content");
+  const icon = $("analytics-toggle-icon");
+  if (content.style.display === "none") {
+    content.style.display = "block";
+    icon.textContent = "▲";
+    updateAnalytics();
+  } else {
+    content.style.display = "none";
+    icon.textContent = "▼";
+  }
+}
+
+function updateAnalytics() {
+  if (!$("analytics-content") || $("analytics-content").style.display === "none") return;
+  if (!S.pokemons || !S.pokemons.length) return;
+
+  let trash = 0, good = 0, great = 0, excellent = 0, hundo = 0;
+  S.pokemons.forEach(p => {
+    if (p.hundo || p.iv_pct === 100) hundo++;
+    else if (p.iv_pct >= 90) excellent++;
+    else if (p.iv_pct >= 80) great++;
+    else if (p.iv_pct >= 50) good++;
+    else trash++;
+  });
+
+  const ivLabels = _lang === "pl" 
+    ? ["Kosz (<50%)", "Średni (50-79%)", "Dobry (80-89%)", "Świetny (90-99%)", "Hundo (100%)"]
+    : ["Trash (<50%)", "Average (50-79%)", "Good (80-89%)", "Excellent (90-99%)", "Hundo (100%)"];
+
+  if (chartIvInstance) chartIvInstance.destroy();
+  const ctxIv = $("chart-iv").getContext("2d");
+  chartIvInstance = new Chart(ctxIv, {
+    type: "bar",
+    data: {
+      labels: ivLabels,
+      datasets: [{
+        label: _lang === "pl" ? "Liczba" : "Count",
+        data: [trash, good, great, excellent, hundo],
+        backgroundColor: [
+          "rgba(239, 68, 68, 0.6)",
+          "rgba(249, 115, 22, 0.6)",
+          "rgba(234, 179, 8, 0.6)",
+          "rgba(34, 197, 94, 0.6)",
+          "rgba(163, 230, 53, 0.8)"
+        ],
+        borderColor: [
+          "#ef4444", "#f97316", "#eab308", "#22c55e", "#a3e635"
+        ],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        x: { grid: { color: "rgba(255,255,255,0.05)" }, ticks: { color: "#9ca3af", font: { size: 10 } } },
+        y: { grid: { color: "rgba(255,255,255,0.05)" }, ticks: { color: "#9ca3af", font: { size: 10 } } }
+      }
+    }
+  });
+
+  const typesMap = {};
+  S.pokemons.forEach(p => {
+    const pTypes = p.types || ["normal"];
+    pTypes.forEach(t => {
+      typesMap[t] = (typesMap[t] || 0) + 1;
+    });
+  });
+
+  const sortedTypes = Object.entries(typesMap)
+    .sort((a,b) => b[1] - a[1])
+    .slice(0, 10);
+
+  const typeLabels = sortedTypes.map(x => x[0].toUpperCase());
+  const typeValues = sortedTypes.map(x => x[1]);
+
+  if (chartTypesInstance) chartTypesInstance.destroy();
+  const ctxTypes = $("chart-types").getContext("2d");
+  chartTypesInstance = new Chart(ctxTypes, {
+    type: "doughnut",
+    data: {
+      labels: typeLabels,
+      datasets: [{
+        data: typeValues,
+        backgroundColor: [
+          "#3b82f6", "#ef4444", "#10b981", "#f59e0b", "#8b5cf6",
+          "#ec4899", "#f43f5e", "#14b8a6", "#6366f1", "#84cc16"
+        ],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: "right",
+          labels: { color: "#d1d5db", font: { size: 9 } }
+        }
+      }
+    }
+  });
+
+  const nandos = S.pokemons.filter(p => p.iv_a === 0 && p.iv_d === 0 && p.iv_s === 0);
+  $("nando-list-label").textContent = nandos.length;
+  const container = $("nando-names-container");
+  container.innerHTML = nandos.map(p => 
+    `<span class="badge badge-shadow" style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); color:#f87171;" data-tooltip="${p.name} CP${p.cp}">Nando ${p.name} (CP ${p.cp})</span>`
+  ).join("") || `<span style="color:var(--muted)">Brak okazów 0% IV</span>`;
+}
+
+async function recalcPowerup(select, idx) {
+  const targetLvl = parseFloat(select.value);
+  const container = $(`pow-calc-${idx}`);
+  if (!targetLvl) {
+    container.innerHTML = `<span style="color:var(--muted);font-size:10px">—</span>`;
+    return;
+  }
+  
+  const p = S.pokemons[idx];
+  container.innerHTML = `<div style="text-align:center;"><div class="spinner" style="width:12px;height:12px;border-width:2px;display:inline-block;"></div></div>`;
+  
+  try {
+    const res = await api("/api/powerup-calculation", {
+      method: "POST",
+      body: JSON.stringify({
+        pid: p.pid,
+        current_lvl: p.lvl,
+        target_lvl: targetLvl,
+        iv_a: p.iv_a,
+        iv_d: p.iv_d,
+        iv_s: p.iv_s,
+        shadow: p.shadow,
+        lucky: p.lucky,
+        purified: p.purified
+      })
+    });
+    
+    let xlText = res.xl_candy > 0 ? ` · 💊${res.xl_candy}` : "";
+    container.innerHTML = `
+      <div style="font-size:10px; line-height:1.3; color:var(--muted);">
+        <strong style="color:var(--accent);">CP ${res.target_cp}</strong><br>
+        ✨${res.stardust.toLocaleString("pl-PL")} · 🍬${res.candy}${xlText}
+      </div>
+    `;
+  } catch (e) {
+    container.innerHTML = `<span style="color:var(--red); font-size:10px;">Błąd</span>`;
+  }
+}
 </script>
 </body>
 </html>

@@ -5,6 +5,7 @@ from data.pokedex import DEX
 from scoring import (
     _TIER_ORDER, _best_tier, _tier_for,
     max_cp, pvp_cp, pvp_iv_rank, pvp_score, raid_score,
+    calculate_cp_for_level,
 )
 from services.tiers import get_tier_list
 from state import _state
@@ -240,7 +241,8 @@ def api_develop_candidates():
             final_tiers = _tier_for(final_name, tiers)
             final_tier  = _best_tier(final_tiers)
             if final_tier in ("S", "A") and p["iv_pct"] >= 80:
-                evolve.append({**p, "final_name": final_name,
+                final_cp = calculate_cp_for_level(final_pid, p["iv_a"], p["iv_d"], p["iv_s"], p["lvl"])
+                evolve.append({**p, "final_name": final_name, "final_cp": final_cp,
                                "final_tier": final_tier, "tiers": final_tiers})
 
         if own_tier in ("S", "A") and p["iv_pct"] >= 80 and p["lvl"] < 40:
@@ -256,7 +258,66 @@ def api_develop_candidates():
                                "tiers": own_tiers, "best_tier": own_tier})
 
         if own_tier in ("S", "A") and p["lvl"] >= 35:
-            elite_tm.append({**p, "tiers": own_tiers, "best_tier": own_tier})
+            from data.pokemon_db import POKEMON_DB
+            from data.moves import MOVES
+            from scoring import get_best_pve_moveset
+            
+            m1 = MOVES.get(p.get("move1"))
+            m2 = MOVES.get(p.get("move2"))
+            m3 = MOVES.get(p.get("move3"))
+            m1_name = m1["name"] if m1 else ""
+            m2_name = m2["name"] if m2 else ""
+            m3_name = m3["name"] if m3 else ""
+            
+            species_name = p["name"].lower().replace(" (shadow)", "").replace(" (purified)", "")
+            db_entry = POKEMON_DB.get(species_name)
+            if not db_entry:
+                matched_key = next((k for k in POKEMON_DB.keys() if k in species_name or species_name in k), None)
+                if matched_key:
+                    db_entry = POKEMON_DB[matched_key]
+            
+            pvp_opt = []
+            pve_opt = []
+            pvp_warn = []
+            pve_warn = []
+            
+            if db_entry:
+                elite_fast = db_entry.get("elite_quick_moves", [])
+                elite_charged = db_entry.get("elite_cinematic_moves", [])
+                
+                pvp_ids = db_entry.get("pvp_moveset", [])
+                for mid in pvp_ids:
+                    m = MOVES.get(mid)
+                    if m:
+                        pvp_opt.append(m["name"])
+                        if m.get("is_fast") and mid in elite_fast and m1_name != m["name"]:
+                            pvp_warn.append(f"Szybki: {m['name']} (Elite)")
+                        elif not m.get("is_fast") and mid in elite_charged and m2_name != m["name"] and m3_name != m["name"]:
+                            pvp_warn.append(f"Ładowany: {m['name']} (Elite)")
+                            
+                best_pve = get_best_pve_moveset(species_name)
+                if best_pve:
+                    bf_id, bc_id, _ = best_pve
+                    bf = MOVES.get(bf_id)
+                    bc = MOVES.get(bc_id)
+                    if bf:
+                        pve_opt.append(bf["name"])
+                        if bf_id in elite_fast and m1_name != bf["name"]:
+                            pve_warn.append(f"Szybki: {bf['name']} (Elite)")
+                    if bc:
+                        pve_opt.append(bc["name"])
+                        if bc_id in elite_charged and m2_name != bc["name"] and m3_name != bc["name"]:
+                            pve_warn.append(f"Ładowany: {bc['name']} (Elite)")
+                            
+            elite_tm.append({
+                **p,
+                "tiers": own_tiers,
+                "best_tier": own_tier,
+                "pvp_optimal": pvp_opt,
+                "pve_optimal": pve_opt,
+                "pvp_warnings": pvp_warn,
+                "pve_warnings": pve_warn
+            })
 
     evolve.sort(key=lambda x: (_TIER_ORDER.get(x["final_tier"], 9), -x["iv_pct"]))
     power_up.sort(key=lambda x: (_TIER_ORDER.get(x.get("best_tier", ""), 9), -x["iv_pct"]))
@@ -268,4 +329,214 @@ def api_develop_candidates():
         "power_up": power_up[:40],
         "purify":   purify[:40],
         "elite_tm": elite_tm[:40],
+    })
+
+
+@bp.route("/api/moveset-check", methods=["POST"])
+def api_moveset_check():
+    body = request.json or {}
+    pid = body.get("pid")
+    move1_id = body.get("move1")
+    move2_id = body.get("move2")
+    move3_id = body.get("move3")
+    shadow = bool(body.get("shadow"))
+    
+    if not pid:
+        return jsonify({"error": "Brak pid"}), 400
+        
+    from data.pokedex import DEX
+    from data.pokemon_db import POKEMON_DB
+    from data.moves import MOVES
+    
+    species_name = DEX.get(pid, f"#{pid}").lower()
+    entry = POKEMON_DB.get(species_name)
+    if not entry:
+        # fallback by stripping parts
+        matched_key = next((k for k in POKEMON_DB.keys() if k in species_name or species_name in k), None)
+        if matched_key:
+            entry = POKEMON_DB[matched_key]
+            
+    if not entry:
+        return jsonify({"error": "Nie znaleziono pokemona w bazie"}), 404
+        
+    # Get current move names
+    m1 = MOVES.get(move1_id)
+    m2 = MOVES.get(move2_id)
+    m3 = MOVES.get(move3_id)
+    
+    m1_name = m1["name"] if m1 else ""
+    m2_name = m2["name"] if m2 else ""
+    m3_name = m3["name"] if m3 else ""
+    
+    # 1. PvP optimal checking
+    pvp_moveset_ids = entry.get("pvp_moveset", [])
+    pvp_fast_optimal = []
+    pvp_charged_optimal = []
+    
+    for mid in pvp_moveset_ids:
+        m = MOVES.get(mid)
+        if m:
+            if m.get("is_fast"):
+                pvp_fast_optimal.append(m["name"])
+            else:
+                pvp_charged_optimal.append(m["name"])
+                
+    pvp_fast_correct = m1_name in pvp_fast_optimal if pvp_fast_optimal else True
+    pvp_charged_correct = (
+        (m2_name in pvp_charged_optimal or m3_name in pvp_charged_optimal) 
+        if pvp_charged_optimal else True
+    )
+    
+    # Check Elite TMs requirements
+    elite_fast = entry.get("elite_quick_moves", [])
+    elite_charged = entry.get("elite_cinematic_moves", [])
+    
+    pvp_warnings = []
+    for mid in pvp_moveset_ids:
+        m = MOVES.get(mid)
+        if m:
+            if m.get("is_fast") and mid in elite_fast and m1_name != m["name"]:
+                pvp_warnings.append(f"Szybki atak '{m['name']}' wymaga Elite Fast TM")
+            elif not m.get("is_fast") and mid in elite_charged and m2_name != m["name"] and m3_name != m["name"]:
+                pvp_warnings.append(f"Ładowany atak '{m['name']}' wymaga Elite Charged TM")
+                
+    if shadow and (move2_id == 5013 or move3_id == 5013 or m2_name == "Frustration" or m3_name == "Frustration"):
+        pvp_warnings.append("Frustration blokuje Charged Move i może być usunięta tylko podczas specjalnych eventów Team GO Rocket")
+        
+    # 2. PvE (Raid) optimal checking
+    from scoring import get_best_pve_moveset
+    best_pve = get_best_pve_moveset(species_name)
+    pve_fast_optimal = ""
+    pve_charged_optimal = ""
+    pve_fast_correct = True
+    pve_charged_correct = True
+    pve_warnings = []
+    
+    if best_pve:
+        best_f_id, best_c_id, best_dps = best_pve
+        bf_move = MOVES.get(best_f_id)
+        bc_move = MOVES.get(best_c_id)
+        if bf_move:
+            pve_fast_optimal = bf_move["name"]
+            pve_fast_correct = m1_name == pve_fast_optimal
+            if best_f_id in elite_fast and not pve_fast_correct:
+                pve_warnings.append(f"Szybki atak '{pve_fast_optimal}' wymaga Elite Fast TM")
+        if bc_move:
+            pve_charged_optimal = bc_move["name"]
+            pve_charged_correct = m2_name == pve_charged_optimal or m3_name == pve_charged_optimal
+            if best_c_id in elite_charged and not pve_charged_correct:
+                pve_warnings.append(f"Ładowany atak '{pve_charged_optimal}' wymaga Elite Charged TM")
+                
+    return jsonify({
+        "pvp_fast_optimal": pvp_fast_optimal,
+        "pvp_charged_optimal": pvp_charged_optimal,
+        "pvp_fast_correct": pvp_fast_correct,
+        "pvp_charged_correct": pvp_charged_correct,
+        "pvp_warnings": pvp_warnings,
+        
+        "pve_fast_optimal": pve_fast_optimal,
+        "pve_charged_optimal": pve_charged_optimal,
+        "pve_fast_correct": pve_fast_correct,
+        "pve_charged_correct": pve_charged_correct,
+        "pve_warnings": pve_warnings,
+    })
+
+
+@bp.route("/api/powerup-calculation", methods=["POST"])
+def api_powerup_calculation():
+    body = request.json or {}
+    pid = body.get("pid")
+    current_lvl = float(body.get("current_lvl", 1.0))
+    target_lvl = float(body.get("target_lvl", 40.0))
+    iv_a = int(body.get("iv_a", 0))
+    iv_d = int(body.get("iv_d", 0))
+    iv_s = int(body.get("iv_s", 0))
+    shadow = bool(body.get("shadow"))
+    lucky = bool(body.get("lucky"))
+    purified = bool(body.get("purified"))
+    
+    if not pid:
+        return jsonify({"error": "Brak pid"}), 400
+        
+    from data.powerup_costs import POWERUP_COSTS
+    from scoring import calculate_cp_for_level
+    
+    import math
+    
+    stardust_sum = 0
+    candy_sum = 0
+    xl_candy_sum = 0
+    
+    lvl = current_lvl
+    while lvl < target_lvl:
+        key = str(lvl)
+        if key.endswith(".0"):
+            key_alt = key[:-2]
+        else:
+            key_alt = key
+            
+        cost = POWERUP_COSTS.get(key) or POWERUP_COSTS.get(key_alt)
+        if cost:
+            stardust_sum += cost.get("stardust_to_upgrade", 0)
+            candy_sum += cost.get("candy_to_upgrade", 0)
+            xl_candy_sum += cost.get("xl_candy_to_upgrade", 0)
+        lvl += 0.5
+        
+    if shadow:
+        stardust_sum = int(math.ceil(stardust_sum * 1.2))
+        candy_sum = int(math.ceil(candy_sum * 1.2))
+        xl_candy_sum = int(math.ceil(xl_candy_sum * 1.2))
+    elif purified:
+        stardust_sum = int(math.floor(stardust_sum * 0.9))
+        candy_sum = int(math.floor(candy_sum * 0.9))
+        xl_candy_sum = int(math.floor(xl_candy_sum * 0.9))
+    elif lucky:
+        stardust_sum = int(math.floor(stardust_sum * 0.5))
+        
+    target_cp = calculate_cp_for_level(pid, iv_a, iv_d, iv_s, target_lvl)
+    
+    return jsonify({
+        "stardust": stardust_sum,
+        "candy": candy_sum,
+        "xl_candy": xl_candy_sum,
+        "target_cp": target_cp
+    })
+
+
+@bp.route("/api/evolve-prediction", methods=["POST"])
+def api_evolve_prediction():
+    body = request.json or {}
+    pid = body.get("pid")
+    iv_a = int(body.get("iv_a", 0))
+    iv_d = int(body.get("iv_d", 0))
+    iv_s = int(body.get("iv_s", 0))
+    lvl = float(body.get("lvl", 1.0))
+    
+    if not pid:
+        return jsonify({"error": "Brak pid"}), 400
+        
+    from data.pokedex import DEX
+    from scoring import calculate_cp_for_level
+    
+    evos = []
+    curr = pid
+    while curr in _EVOLVE_CHAIN:
+        next_pid = _EVOLVE_CHAIN[curr]
+        name = DEX.get(next_pid, f"#{next_pid}")
+        cp = calculate_cp_for_level(next_pid, iv_a, iv_d, iv_s, lvl)
+        
+        fits_gl = cp <= 1500
+        fits_ul = cp <= 2500
+        
+        evos.append({
+            "pid": next_pid,
+            "name": name,
+            "cp": cp,
+            "fits_gl": fits_gl,
+            "fits_ul": fits_ul
+        })
+        curr = next_pid
+        
+    return jsonify({
+        "evolutions": evos
     })

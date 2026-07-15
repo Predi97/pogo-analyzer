@@ -1,4 +1,6 @@
 from datetime import datetime
+import csv
+import io
 
 from data.cpm import cpm_to_level
 from data.pokedex import _FORM_SUFFIXES, _resolve_item_name
@@ -168,6 +170,152 @@ def parse_pgo_json(raw: dict) -> dict:
     return {
         "pokemons": pokemons,
         "items": items,
+        "player": player_info,
+        "pvp_stats": pvp_info
+    }
+
+
+def parse_pokegenie_csv(csv_content: str) -> dict:
+    from data.pokedex import DEX
+    from data.moves import MOVES
+    
+    move_map = {}
+    for mid, mdata in MOVES.items():
+        move_map[mdata["name"].lower().strip()] = mid
+        
+    f = io.StringIO(csv_content.strip())
+    reader = csv.DictReader(f)
+    
+    pokemons = []
+    
+    form_map = {
+        "Galar": "Galarian",
+        "Alola": "Alolan",
+        "Hisui": "Hisuian",
+        "Paldea": "Paldean"
+    }
+    
+    for row in reader:
+        if "Pokemon" not in row or "CP" not in row:
+            continue
+            
+        pid_str = row.get("Pokemon")
+        if not pid_str or not pid_str.isdigit():
+            continue
+        pid = int(pid_str)
+        
+        cp = int(row.get("CP") or 0)
+        
+        try:
+            lvl = float(row.get("Level Min") or row.get("Level Max") or 1.0)
+        except ValueError:
+            lvl = 1.0
+            
+        iv_avg_str = row.get("IV Avg", "").replace("%", "")
+        try:
+            iv_avg = float(iv_avg_str) if iv_avg_str else 0.0
+        except ValueError:
+            iv_avg = 0.0
+            
+        def parse_iv(val):
+            if val is None or val.strip() == "":
+                return None
+            try:
+                return int(val)
+            except ValueError:
+                return None
+                
+        iv_a = parse_iv(row.get("Atk IV"))
+        iv_d = parse_iv(row.get("Def IV"))
+        iv_s = parse_iv(row.get("Sta IV"))
+        
+        if iv_a is None or iv_d is None or iv_s is None:
+            est = int(round(iv_avg * 15 / 100))
+            iv_a = iv_a if iv_a is not None else est
+            iv_d = iv_d if iv_d is not None else est
+            iv_s = iv_s if iv_s is not None else est
+            
+        iv_pct = round((iv_a + iv_d + iv_s) / 45 * 100, 1)
+        
+        form_raw = row.get("Form", "").strip()
+        form_mapped = form_map.get(form_raw, form_raw)
+        name = _pokemon_name(pid, form_mapped)
+        
+        lucky = int(row.get("Lucky") or 0) == 1
+        shadow_val = int(row.get("Shadow/Purified") or 0)
+        shadow = shadow_val == 1
+        purified = shadow_val == 2
+        
+        m1_name = row.get("Quick Move", "").lower().strip()
+        m2_name = row.get("Charge Move", "").lower().strip()
+        m3_name = row.get("Charge Move 2", "").lower().strip()
+        
+        move1 = move_map.get(m1_name, 0)
+        move2 = move_map.get(m2_name, 0)
+        move3 = move_map.get(m3_name, 0)
+        
+        pokemons.append({
+            "pid": pid,
+            "name": name,
+            "cp": cp,
+            "lvl": lvl,
+            "iv_a": iv_a,
+            "iv_d": iv_d,
+            "iv_s": iv_s,
+            "iv_pct": iv_pct,
+            "shiny": False,
+            "shadow": shadow,
+            "purified": purified,
+            "fav": int(row.get("Favorite") or 0) == 1,
+            "lucky": lucky,
+            "hundo": iv_pct == 100.0,
+            "year": 0,
+            "nick": row.get("Name", ""),
+            "move1": move1,
+            "move2": move2,
+            "move3": move3,
+        })
+        
+    pokemons.sort(key=lambda x: -x["cp"])
+    
+    player_info = {
+        "name": "PokéGenie Import",
+        "team": 0,
+        "level": 0,
+        "experience": 0,
+        "kmWalked": 0.0,
+        "pokemonsCaught": len(pokemons),
+        "eggsHatched": 0,
+        "evolutions": 0,
+        "pokeStopsVisited": 0,
+        "stardust": 0,
+        "coins": 0,
+        "maxPokeStorage": len(pokemons) + 100,
+        "maxItemStorage": 500
+    }
+    
+    pvp_info = {
+        "season_rank": 0,
+        "season_battles": 0,
+        "season_wins": 0,
+        "season_stardust": 0,
+        "season_streak": 0,
+        "season_longest_streak": 0,
+        "lifetime_battles": 0,
+        "lifetime_wins": 0,
+        "lifetime_stardust": 0,
+        "lifetime_longest_streak": 0,
+        "gl_battles": 0,
+        "gl_wins": 0,
+        "ul_battles": 0,
+        "ul_wins": 0,
+        "ml_battles": 0,
+        "ml_wins": 0,
+    }
+    
+    return {
+        "pokemons": pokemons,
+        "items": [],
         "player": player_info,
         "pvp_stats": pvp_info
     }

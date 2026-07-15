@@ -10,7 +10,7 @@
 
 > 🇬🇧 **[English version (Wersja angielska)](README.md)**
 
-Profesjonalna, lokalna aplikacja webowa do analizy Twojego konta Pokémon GO, zarządzania kandydatami do PvP/Raidów oraz planowania taktyki wydarzeń z personalizowanym trenerem AI. Zasilana eksportem pliku `PGSStats.json` z **PGSharp**.
+Profesjonalna, lokalna aplikacja webowa do analizy Twojego konta Pokémon GO, zarządzania kandydatami do PvP/Raidów oraz planowania taktyki wydarzeń z personalizowanym trenerem AI. Zasilana eksportem pliku `PGSStats.json` z **PGSharp** lub eksportem `.csv` z **PokéGenie**.
 
 ---
 
@@ -60,21 +60,29 @@ Pasek filtrów nad tabelą Pokémonów generuje zapytania w pełni zgodne z wysz
 
 ---
 
-## 📱 Źródło Danych — PGSharp
+## 📱 Źródła Danych — PGSharp & PokéGenie
 
-Aplikacja jest zaprojektowana do pracy wyłącznie z plikiem eksportu **`PGSStats.json`** generowanym przez aplikację [**PGSharp**](https://www.pgsharp.com/) — zmodyfikowanego klienta Pokémon GO.
+Aplikacja obsługuje dane eksportowane z dwóch popularnych narzędzi zewnętrznych:
 
-### Jak uzyskać plik `PGSStats.json`?
+1. **`PGSStats.json`** generowany przez aplikację **PGSharp** (zmodyfikowany klient gry). Zawiera kompletny plecak Pokémonów, ekwipunek przedmiotów, profil gracza oraz statystyki walk PvP.
+2. **Plik `.csv`** generowany przez aplikację **PokéGenie** (nakładka i skaner IV). Zawiera listę zeskanowanych gatunków Pokémonów, ich IV, poziomy, CP oraz nazwy ataków.
 
+### Jak uzyskać plik `pgsstats.json` (PGSharp):
 1. Otwórz **PGSharp** na swoim urządzeniu.
-2. Wejdź w opcje/ustawienia **PGSharp Settings**.
+2. Wejdź w ustawienia **PGSharp Settings**.
 3. Na samym dole włącz opcję **Export account data** na **ON**.
-4. Wybierz folder na telefonie, w którym ma się automatycznie zapisywać plik `pgsstats.json` przy każdym logowaniu.
-5. Prześlij wygenerowany plik `pgsstats.json` na swój komputer (np. przez Dysk Google, Discord lub kabel USB).
-6. Wgraj plik w dashboardzie **PokéGO Analyzer**, aby odblokować wszystkie funkcje.
+4. Wybierz folder na telefonie, w którym ma się automatycznie zapisywać plik `pgsstats.json`.
+5. Prześlij plik `pgsstats.json` na swój komputer.
+6. Wgraj plik w głównym panelu aplikacji.
+
+### Jak uzyskać eksport `.csv` (PokéGenie):
+1. Otwórz **PokéGenie** na telefonie.
+2. Przejdź do zakładki **My Pokémon**.
+3. Kliknij ikonę opcji/menu w prawym górnym rogu i wybierz **Export as CSV**.
+4. Prześlij i wgraj plik `.csv` w panelu **PokéGO Analyzer**.
 
 > [!NOTE]
-> `PGSStats.json` zawiera pełny box Pokémonów, ekwipunek przedmiotów, profil trenera i statystyki walk — wszystko w jednym pliku. Analizator przetwarza dane w całości **lokalnie** — żadne dane nie są wysyłane na zewnętrzny serwer.
+> Cała analiza i przetwarzanie plików odbywa się w całości **lokalnie** na Twoim komputerze i w przeglądarce — żadne dane nie opuszczają Twojej maszyny.
 
 ---
 

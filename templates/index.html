@@ -527,10 +527,10 @@ tr:hover td{background:rgba(163,240,80,.025)}
         <span id="lang-en" title="English" style="cursor: pointer; font-size: 18px; transition: all 0.2s ease;">🇺🇸</span>
       </div>
     </div>
-    <p id="header-sub">Wgraj PGSStats.json żeby zacząć</p>
+    <p id="header-sub">Wgraj PGSStats.json lub CSV żeby zacząć</p>
     <div id="upload-small">
       <div class="btn btn-outline btn-sm">↺ Zmień plik</div>
-      <input type="file" accept=".json" id="upload-input-small">
+      <input type="file" accept=".json,.csv" id="upload-input-small">
     </div>
   </div>
 
@@ -564,7 +564,7 @@ tr:hover td{background:rgba(163,240,80,.025)}
     <button class="tab" data-tab="settings">⚙️ Ustawienia</button>
   </nav>
 
-  <div class="sidebar-hint">Wgraj plik JSON żeby zacząć</div>
+  <div class="sidebar-hint">Wgraj plik JSON lub CSV żeby zacząć</div>
 </aside>
 
 <!-- ── Page ───────────────────────────────────────────────────────── -->
@@ -572,11 +572,11 @@ tr:hover td{background:rgba(163,240,80,.025)}
 
   <!-- Upload zone -->
   <div id="upload-zone">
-    <input type="file" accept=".json" id="upload-input">
+    <input type="file" accept=".json,.csv" id="upload-input">
     <div class="upload-card">
       <span class="upload-icon">📂</span>
       <div class="upload-title">PokéGO Analyzer</div>
-      <div class="upload-sub" id="upload-sub-text">Wgraj plik <strong>PGSStats.json</strong> z aplikacji PGSharp<br>aby przeanalizować swoje konto</div>
+      <div class="upload-sub" id="upload-sub-text">Wgraj plik <strong>PGSStats.json</strong> (PGSharp) lub eksport <strong>.csv</strong> (PokéGenie)<br>aby przeanalizować swoje konto</div>
       <div class="upload-hint" id="upload-hint-text" style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.6">
         📱 <a href="https://www.pgsharp.com/" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none">PGSharp Settings</a> &nbsp;→&nbsp; Export account data na <strong>ON</strong> (na samym dole) &nbsp;→&nbsp; wybierz folder dla pliku <strong>pgsstats.json</strong>
       </div>
@@ -2281,8 +2281,8 @@ function applyLanguage() {
   
   const uploadSub = document.querySelector(".upload-sub");
   if (uploadSub) uploadSub.innerHTML = _lang === "pl" 
-    ? "Wgraj plik <strong>PGSStats.json</strong> z aplikacji PGSharp<br>aby przeanalizować swoje konto"
-    : "Upload <strong>PGSStats.json</strong> file from PGSharp app<br>to analyze your account";
+    ? "Wgraj plik <strong>PGSStats.json</strong> (PGSharp) lub eksport <strong>.csv</strong> (PokéGenie)<br>aby przeanalizować swoje konto"
+    : "Upload <strong>PGSStats.json</strong> (PGSharp) or <strong>.csv</strong> export (PokéGenie)<br>to analyze your account";
 
   const uploadHint = $("upload-hint-text");
   if (uploadHint) uploadHint.innerHTML = _lang === "pl"
@@ -2298,7 +2298,7 @@ function applyLanguage() {
   if (uploadSmallBtn) uploadSmallBtn.textContent = t.changeFile;
   
   const sidebarHint = document.querySelector(".sidebar-hint");
-  if (sidebarHint) sidebarHint.textContent = _lang === "pl" ? "Wgraj plik JSON żeby zacząć" : "Upload JSON file to begin";
+  if (sidebarHint) sidebarHint.textContent = _lang === "pl" ? "Wgraj plik JSON lub CSV żeby zacząć" : "Upload JSON or CSV file to begin";
 
   const tabNames = {
     pokemon: _lang === "pl" ? "🎮 Pokemony" : "🎮 Pokémon",

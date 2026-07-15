@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Interactive Power-up Cost Calculator**: Integrated dropdowns on candidate panels to dynamically compute precise Stardust, Candy, and XL Candy upgrades, along with target CP predictions using CPM values.
 - **Evolution CP Predictor**: Analyzes evolution stages and predicts post-evolution CP while validating compatibility with Great League (1500 CP) and Ultra League (2500 CP) limits.
 - **Dashboard Box Analytics**: Added collapsible visual charts (IV distribution and type distribution) built with Chart.js, alongside a Nando (0% IV) tracker displaying rare specimens.
+- **PokéGenie CSV Import Support**: Enabled importing `.csv` export files from the PokéGenie app, parsing scanned species, CP, levels, gender, lucky/shadow/purified statuses, and movesets, integrating fully with all dashboard features.
+
 
 ## [1.1.0] - 2026-07-14
 

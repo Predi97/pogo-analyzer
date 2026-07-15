@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, Response, jsonify, request
 
 from database import get_db, save_upload
-from parser import parse_pgo_json
+from parser import parse_pgo_json, parse_pokegenie_csv
 from scoring import _best_tier, _tier_for, pvp_iv_rank
 from services.events import get_events
 from services.tiers import get_tier_list
@@ -27,8 +27,19 @@ def upload():
     if not f.filename:
         return jsonify({"error": "Pusty plik"}), 400
     try:
-        raw    = json.load(f)
-        parsed = parse_pgo_json(raw)
+        filename = f.filename.lower()
+        if filename.endswith(".csv"):
+            csv_content = f.read().decode("utf-8")
+            parsed = parse_pokegenie_csv(csv_content)
+            raw_to_save = {
+                "source": "pokegenie",
+                "data": parsed
+            }
+        else:
+            raw = json.load(f)
+            parsed = parse_pgo_json(raw)
+            raw_to_save = raw
+
         _state["pokemons"]  = parsed["pokemons"]
         _state["items"]     = parsed["items"]
         _state["player"]    = parsed["player"]
@@ -36,7 +47,7 @@ def upload():
         _state["loaded"]    = True
         n = len(parsed["pokemons"])
         log.info("Uploaded: %d pokemons, %d item types", n, len(parsed["items"]))
-        save_upload(raw)
+        save_upload(raw_to_save)
         return jsonify({
             "ok": True,
             "stats": {

@@ -12,6 +12,8 @@ a projekt stosuje się do [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 - **Interaktywny Kalkulator Kosztów Power-up**: Zintegrowano listy wyboru poziomu docelowego, wyliczające w czasie rzeczywistym zapotrzebowanie na Stardust, Candy i XL Candy oraz prognozujące CP po ulepszeniu na podstawie wartości CPM.
 - **Prognoza CP po Ewolucji**: Oblicza CP dla kolejnych stadiów ewolucyjnych i weryfikuje zgodność z limitami Great League (1500 CP) i Ultra League (2500 CP).
 - **Wykresy i Statystyki Boxa (Dashboard Box Analytics)**: Wdrożono zwijany panel wykresów (rozkład IV oraz typów) za pomocą biblioteki Chart.js, a także licznik i listę unikalnych okazów "Nando" (0% IV).
+- **Import plików CSV z PokéGenie**: Dodano obsługę importu plików `.csv` wyeksportowanych z aplikacji PokéGenie, parsując zeskanowane gatunki, CP, poziomy, IV, płeć, statusy lucky/shadow/purified oraz zestawy ataków, w pełni integrując je ze wszystkimi widokami i analizami.
+
 
 ## [1.1.0] - 2026-07-14
 

@@ -1853,10 +1853,40 @@ function renderRaid() {
     ].join("");
     
     const pveOpt = p.pve_optimal && p.pve_optimal.length ? p.pve_optimal.join(" + ") : "—";
+    const pveStd = p.pve_standard && p.pve_standard.length ? p.pve_standard.join(" + ") : "—";
+    
+    const optClean0 = p.pve_optimal && p.pve_optimal[0] ? p.pve_optimal[0].replace('*', '') : '';
+    const optClean1 = p.pve_optimal && p.pve_optimal[1] ? p.pve_optimal[1].replace('*', '') : '';
     const matchesOpt = p.pve_optimal && p.pve_optimal.length &&
-                       p.curr_moves && p.curr_moves.includes(p.pve_optimal[0]) &&
-                       (p.curr_moves.includes(p.pve_optimal[1]) || (p.curr_moves.length > 2 && p.curr_moves.includes(p.pve_optimal[1])));
-    const optClass = matchesOpt ? 'style="color: var(--green); font-weight: 600;"' : 'style="color: var(--muted); font-size: 11px;"';
+                       p.curr_moves && p.curr_moves.includes(optClean0) &&
+                       (p.curr_moves.includes(optClean1) || (p.curr_moves.length > 2 && p.curr_moves.includes(optClean1)));
+
+    const matchesStd = p.pve_standard && p.pve_standard.length &&
+                       p.curr_moves && p.curr_moves.includes(p.pve_standard[0]) &&
+                       (p.curr_moves.includes(p.pve_standard[1]) || (p.curr_moves.length > 2 && p.curr_moves.includes(p.pve_standard[1])));
+
+    let movesetHtml = "—";
+    let optClass = 'style="color: var(--muted); font-size: 11px;"';
+    
+    if (pveOpt !== "—") {
+      if (matchesOpt) {
+        optClass = 'style="color: var(--green); font-weight: 600;"';
+        movesetHtml = `✔️ ${pveOpt}`;
+      } else if (matchesStd && pveStd !== pveOpt) {
+        optClass = 'style="color: var(--green); font-weight: 600;"';
+        movesetHtml = `✔️ ${pveStd} <span style="font-size: 9px; color: var(--muted); font-weight: normal;">(Std)</span>
+                       <div style="font-size: 9px; color: var(--muted); margin-top: 2px; font-weight: normal; font-family: var(--fb);">Elite: ${pveOpt}</div>`;
+      } else {
+        if (pveStd !== pveOpt && pveStd !== "—") {
+          optClass = 'style="color: var(--yellow); font-size: 11px;"';
+          movesetHtml = `⚠️ ${pveOpt}
+                         <div style="font-size: 9px; color: var(--muted); margin-top: 2px; font-family: var(--fb);">Std: ${pveStd}</div>`;
+        } else {
+          optClass = 'style="color: var(--yellow); font-size: 11px;"';
+          movesetHtml = `⚠️ ${pveOpt}`;
+        }
+      }
+    }
 
     return `<tr>
       <td style="color:var(--muted);font-weight:700;font-family:var(--fm)">${i+1}</td>
@@ -1874,7 +1904,7 @@ function renderRaid() {
       <td class="${ivClass(p.iv_pct)}">${p.iv_pct}%</td>
       <td class="mono">${p.iv_a}/${p.iv_d}/${p.iv_s}</td>
       <td style="color:var(--cyan);font-weight:600;font-family:var(--fm)">${p.max_cp ? p.max_cp.toLocaleString() : "—"}</td>
-      <td><div class="mono" ${optClass}>${pveOpt === "—" ? "—" : (matchesOpt ? '✔️ ' : '⚠️ ') + pveOpt}</div></td>
+      <td><div class="mono" ${optClass}>${movesetHtml}</div></td>
       <td>${tb || '<span style="color:var(--muted);font-size:10px">—</span>'}</td>
       <td>${tags}</td>
       <td><button class="btn-ai" onclick="analyzeOnePokemon(${S.pokemons.indexOf(S.pokemons.find(x=>x.pid===p.pid&&x.cp===p.cp))})">🤖 AI</button></td>

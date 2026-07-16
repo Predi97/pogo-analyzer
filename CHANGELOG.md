@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Sub-tier Badge Styling and Filters**: Fixed sub-tier badges (e.g. S+, A+, B+) failing to render background styling by extracting the base tier level character for CSS class bindings. Corrected meta filter matches so that sub-tier rankings are properly protected and selectable in S/A filters.
+- **Silph Road Style POGO Search String Generator**: Replaced the long list of explicit Pokedex IDs to transfer with standard, short search strings natively supported by Pokémon GO (e.g. starting with `0*,1*,2*` or `0*,1*,2*,3*` and appending native exclusions like `!shiny&!shadow&!lucky`). It only appends Pokedex ID exclusions (`!<pid>`) for species with protected specimens that are not covered by status filters, keeping the string extremely short and copy-pasteable in one go.
 
 ## [1.2.0] - 2026-07-15
 

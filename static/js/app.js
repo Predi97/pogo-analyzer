@@ -288,9 +288,6 @@ function renderPokemons() {
 }
 
 function buildPogoQuery() {
-  const list = sortPokes(S.pokemons.filter(filterPoke));
-  if (!list.length) return null;
-
   const cpMin = parseInt($("ropt-cp-min").value) || 1200;
   
   const protectHundo = $("ropt-hundo").checked;
@@ -304,72 +301,156 @@ function buildPogoQuery() {
   const protectPvp = $("ropt-pvp").checked;
   const protectLvl = $("ropt-lvl").checked;
 
-  const protected_ = new Set(
-    S.pokemons
-      .filter(p =>
-        (protectHundo && (p.hundo || p.iv_pct === 100))
-        || (protectNando && p.iv_pct === 0)
-        || (protectShiny && p.shiny)
-        || (protectShadow && p.shadow)
-        || (protectLucky && p.lucky)
-        || (protectFav && p.fav)
-        || (protectMeta && p.best_tier && (p.best_tier.startsWith("S") || p.best_tier.startsWith("A")))
-        || (protectIv && p.iv_pct >= 82.2)
-        || (p.cp >= cpMin)
-        || (protectPvp && p.gl_rank > 0 && p.gl_rank <= 500)
-        || (protectLvl && p.lvl >= 35)
-      )
-      .map(p => p.name)
-  );
-
-  const seen = new Set();
-  const allPokes = list.filter(p => seen.has(p.name) ? false : (seen.add(p.name), true));
-  const safePokes = allPokes.filter(p => !protected_.has(p.name));
-  const skipped   = allPokes.length - safePokes.length;
-
-  if (!safePokes.length) return { query: null, skipped, total: allPokes.length };
-
-  let suffix = "";
   const isPl = _lang === "pl";
-  
-  if ($("ropt-ex-shiny").checked)     suffix += "&!shiny";
-  if ($("ropt-ex-shadow").checked)    suffix += "&!shadow";
-  if ($("ropt-ex-lucky").checked)     suffix += "&!lucky";
-  if ($("ropt-ex-fav").checked)       suffix += isPl ? "&!ulubione" : "&!favorite";
-  if ($("ropt-ex-legendary").checked) suffix += isPl ? "&!legenda" : "&!legendary";
-  if ($("ropt-ex-mythical").checked)  suffix += isPl ? "&!mityczny" : "&!mythical";
-  if ($("ropt-ex-ub").checked)        suffix += isPl ? "&!ultra bestia" : "&!ultrabeast";
-  if ($("ropt-ex-costume").checked)   suffix += isPl ? "&!kostium" : "&!costume";
-  if ($("ropt-ex-purified").checked)  suffix += isPl ? "&!oczyszczony" : "&!purified";
-  if ($("ropt-ex-buddy").checked)     suffix += isPl ? "&!pomocnik" : "&!buddy";
-  if ($("ropt-ex-defender").checked)  suffix += isPl ? "&!obrońca" : "&!defender";
-  if ($("ropt-ex-mega").checked)      suffix += isPl ? "&!mega" : "&!mega";
-  
+
+  // 1. Base query determining stars selection
+  let baseQuery = "";
+  if (protectIv) {
+    baseQuery = "0*,1*,2*";
+  } else if (protectHundo) {
+    baseQuery = "0*,1*,2*,3*";
+  }
+
+  // 2. Build list of native status exclusions
+  const parts = [];
+  if (baseQuery) {
+    parts.push(baseQuery);
+  }
+
+  if (protectShiny || $("ropt-ex-shiny").checked) {
+    parts.push("!shiny");
+  }
+  if (protectShadow || $("ropt-ex-shadow").checked) {
+    parts.push("!shadow");
+  }
+  if (protectLucky || $("ropt-ex-lucky").checked) {
+    parts.push("!lucky");
+  }
+  if (protectFav || $("ropt-ex-fav").checked) {
+    parts.push(isPl ? "!ulubione" : "!favorite");
+  }
+  if ($("ropt-ex-legendary").checked) {
+    parts.push(isPl ? "!legenda" : "!legendary");
+  }
+  if ($("ropt-ex-mythical").checked) {
+    parts.push(isPl ? "!mityczny" : "!mythical");
+  }
+  if ($("ropt-ex-ub").checked) {
+    parts.push(isPl ? "!ultra bestia" : "!ultrabeast");
+  }
+  if ($("ropt-ex-costume").checked) {
+    parts.push(isPl ? "!kostium" : "!costume");
+  }
+  if ($("ropt-ex-purified").checked) {
+    parts.push(isPl ? "!oczyszczony" : "!purified");
+  }
+  if ($("ropt-ex-buddy").checked) {
+    parts.push(isPl ? "!pomocnik" : "!buddy");
+  }
+  if ($("ropt-ex-defender").checked) {
+    parts.push(isPl ? "!obrońca" : "!defender");
+  }
+  if ($("ropt-ex-mega").checked) {
+    parts.push("!mega");
+  }
   if ($("ropt-cp").checked) {
     const cpVal = $("ropt-cp-val").value;
-    if (cpVal) suffix += `&cp-${cpVal}`;
-  }
-
-  // IDs Pokédexu zamiast nazw; sufiks JEDEN raz na końcu całej grupy
-  const ids = [...new Set(safePokes.map(p => p.pid))];
-
-  // chunking: każda paczka IDs + sufiks ≤ 300 znaków
-  const LIMIT = 300;
-  const chunks = [];
-  let cur = [], curLen = 0;
-  for (const id of ids) {
-    const s = String(id);
-    const add = cur.length ? s.length + 1 : s.length;   // +1 za przecinek
-    if (cur.length && curLen + add + suffix.length > LIMIT) {
-      chunks.push(cur.join(",") + suffix);
-      cur = [s]; curLen = s.length;
-    } else {
-      cur.push(s); curLen += add;
+    if (cpVal) {
+      parts.push(`cp-${cpVal}`);
     }
   }
-  if (cur.length) chunks.push(cur.join(",") + suffix);
 
-  return { chunks, skipped, total: allPokes.length };
+  // Helper function to see if specimen is already filtered out natively
+  function isCovered(p) {
+    if (p.shiny && (protectShiny || $("ropt-ex-shiny").checked)) return true;
+    if (p.shadow && (protectShadow || $("ropt-ex-shadow").checked)) return true;
+    if (p.lucky && (protectLucky || $("ropt-ex-lucky").checked)) return true;
+    if (p.fav && (protectFav || $("ropt-ex-fav").checked)) return true;
+    if ((p.hundo || p.iv_pct === 100) && (protectIv || protectHundo)) return true;
+    if (p.iv_pct >= 82.2 && protectIv) return true;
+    return false;
+  }
+
+  // 3. Species ID exclusions for protected specimens that are not covered
+  const protectPids = new Set();
+  S.pokemons.forEach(p => {
+    const isSpecimenProtected = (protectHundo && (p.hundo || p.iv_pct === 100))
+      || (protectNando && p.iv_pct === 0)
+      || (protectShiny && p.shiny)
+      || (protectShadow && p.shadow)
+      || (protectLucky && p.lucky)
+      || (protectFav && p.fav)
+      || (protectMeta && p.best_tier && (p.best_tier.startsWith("S") || p.best_tier.startsWith("A")))
+      || (protectIv && p.iv_pct >= 82.2)
+      || (p.cp >= cpMin)
+      || (protectPvp && p.gl_rank > 0 && p.gl_rank <= 500)
+      || (protectLvl && p.lvl >= 35);
+
+    if (isSpecimenProtected && !isCovered(p)) {
+      protectPids.add(p.pid);
+    }
+  });
+
+  // Append exclusions by Pokedex ID
+  protectPids.forEach(pid => {
+    parts.push(`!${pid}`);
+  });
+
+  const fullQuery = parts.join("&");
+  if (!fullQuery) return null;
+
+  // Let's count how many pokemons in user box are matching this query string to show correct UI stats
+  let selectedCount = 0;
+  S.pokemons.forEach(p => {
+    let matchesBase = true;
+    if (protectIv) {
+      matchesBase = (p.iv_pct < 82.2);
+    } else if (protectHundo) {
+      matchesBase = (p.iv_pct < 100);
+    }
+
+    if (!matchesBase) return;
+
+    let excluded = false;
+    if ((protectShiny || $("ropt-ex-shiny").checked) && p.shiny) excluded = true;
+    if ((protectShadow || $("ropt-ex-shadow").checked) && p.shadow) excluded = true;
+    if ((protectLucky || $("ropt-ex-lucky").checked) && p.lucky) excluded = true;
+    if ((protectFav || $("ropt-ex-fav").checked) && p.fav) excluded = true;
+    if (protectPids.has(p.pid)) excluded = true;
+
+    if (!excluded) {
+      selectedCount++;
+    }
+  });
+
+  const LIMIT = 300;
+  if (fullQuery.length <= LIMIT) {
+    return { chunks: [fullQuery], skipped: S.pokemons.length - selectedCount, total: S.pokemons.length };
+  } else {
+    // Break the PIDs if the string exceeds limit
+    const baseExclusionsParts = parts.filter(pt => !pt.startsWith("!"));
+    const pidParts = parts.filter(pt => pt.startsWith("!"));
+
+    const chunks = [];
+    let curPids = [];
+    let curLen = baseExclusionsParts.join("&").length;
+
+    for (const pidPart of pidParts) {
+      const addLen = curPids.length ? pidPart.length + 1 : pidPart.length;
+      if (curPids.length && curLen + addLen > LIMIT) {
+        chunks.push(baseExclusionsParts.concat(curPids).join("&"));
+        curPids = [pidPart];
+        curLen = baseExclusionsParts.join("&").length + pidPart.length;
+      } else {
+        curPids.push(pidPart);
+        curLen += addLen;
+      }
+    }
+    if (curPids.length) {
+      chunks.push(baseExclusionsParts.concat(curPids).join("&"));
+    }
+    return { chunks, skipped: S.pokemons.length - selectedCount, total: S.pokemons.length };
+  }
 }
 
 // ── CSV Export ────────────────────────────────────────────────────────────────

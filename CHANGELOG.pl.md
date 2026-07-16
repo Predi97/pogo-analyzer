@@ -12,6 +12,7 @@ a projekt stosuje się do [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ### Naprawiono
 - **Wizualizacja i filtry pod-tierów (S+, A+, B+)**: Naprawiono błąd braku tła graficznego (badge) dla pod-tierów (np. S+, B+), wyodrębniając pierwszy znak poziomu dla klas stylów CSS. Skorygowano także dopasowania filtrów meta, dzięki czemu Pokémony z pod-tierami są poprawnie chronione i widoczne przy filtrowaniu S/A.
+- **Generator zapytań w stylu Silph Road**: Zastąpiono generowanie długich list konkretnych numerów ID do transferu standardowymi, krótkimi zapytaniami wyszukiwania w Pokémon GO (np. rozpoczynając od `0*,1*,2*` lub `0*,1*,2*,3*` i dołączając natywne wykluczenia `!shiny&!shadow&!lucky`). Wykluczenia po numerach ID (`!<pid>`) są generowane tylko dla gatunków, które posiadają w naszym plecaku cenne, chronione okazy nieobjęte filtrami statusów, co sprawia, że cały ciąg jest bardzo krótki i kopiowalny za jednym razem.
 
 ## [1.2.0] - 2026-07-15
 

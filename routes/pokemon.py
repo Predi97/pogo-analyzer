@@ -302,8 +302,21 @@ def export_inventory_csv():
 
 @bp.route("/api/status")
 def api_status():
+    import socket
+    def get_local_ip():
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            s.connect(('10.255.255.255', 1))
+            IP = s.getsockname()[0]
+        except Exception:
+            IP = '127.0.0.1'
+        finally:
+            s.close()
+        return IP
+
+    local_ip = get_local_ip()
     if not _state["loaded"]:
-        return jsonify({"loaded": False})
+        return jsonify({"loaded": False, "local_ip": local_ip})
     pokemons = _state["pokemons"]
 
     stardust = 0
@@ -320,6 +333,7 @@ def api_status():
 
     return jsonify({
         "loaded": True,
+        "local_ip": local_ip,
         "stats": {
             "total":      len(pokemons),
             "shinies":    sum(1 for p in pokemons if p["shiny"]),

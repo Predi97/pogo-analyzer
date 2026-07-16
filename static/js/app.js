@@ -173,6 +173,7 @@ async function onUploadSuccess(stats, player, pvp_stats) {
   loadRaid();
   loadPvP("GL");
   loadDevelop();
+  loadPvpGems();
   updatePogoQuery();
 }
 
@@ -1272,6 +1273,154 @@ $("btn-analyze-pvp").addEventListener("click", async () => {
   }
 });
 
+// ── PvP Gems & Purify Comparison ──────────────────────────────────────────────
+let _pvpGems = [];
+async function loadPvpGems() {
+  try {
+    const res = await api("/api/pvp-hidden-gems");
+    _pvpGems = res || [];
+    renderPvpGems();
+  } catch (e) {
+    console.error("Failed to load PvP gems:", e);
+  }
+}
+
+function renderPvpGems() {
+  const card = $("pvp-gems-card");
+  if (!card) return;
+  if (_pvpGems.length === 0) {
+    card.style.display = "none";
+    return;
+  }
+  card.style.display = "block";
+
+  const isPl = _lang === "pl";
+  
+  const previewContainer = $("pvp-gems-preview");
+  if (previewContainer) {
+    previewContainer.innerHTML = _pvpGems.slice(0, 6).map(g => {
+      const leagueBadge = g.gem_league.startsWith("GL") ? "badge-gl" : g.gem_league.startsWith("UL") ? "badge-ul" : "badge-ll";
+      return `<div style="background:var(--bg3); padding:4px 8px; border-radius:6px; border:1px solid var(--border2); font-size:11px; display:flex; gap:6px; align-items:center;">
+        <b>${g.name}</b>
+        <span class="badge ${leagueBadge}" style="font-size:9px; padding:1px 4px;">#${g.gem_rank} ${g.gem_target}</span>
+      </div>`;
+    }).join("");
+  }
+
+  $("pvp-gems-tbody").innerHTML = _pvpGems.map(g => {
+    const pIdx = S.pokemons.indexOf(S.pokemons.find(x => x.pid === g.pid && x.cp === g.cp));
+    const leagueBadge = g.gem_league.startsWith("GL") ? "badge-gl" : g.gem_league.startsWith("UL") ? "badge-ul" : "badge-ll";
+    const tags = [
+      g.shiny ? `<span class="badge badge-shiny">✨</span>` : "",
+      g.shadow ? `<span class="badge badge-shadow">Shadow</span>` : "",
+      g.lucky ? `<span class="badge badge-lucky">🍀</span>` : ""
+    ].join("");
+    return `<tr>
+      <td class="name-cell">${g.name} ${tags}</td>
+      <td class="cp-cell">${g.cp}</td>
+      <td class="mono">${g.lvl}</td>
+      <td class="${ivClass(g.iv_pct)}">${g.iv_pct}%</td>
+      <td class="mono">${g.iv_a}/${g.iv_d}/${g.iv_s}</td>
+      <td style="color:var(--yellow); font-weight:700">→ ${g.gem_target}</td>
+      <td><span class="badge ${leagueBadge}">${g.gem_league.split(" ")[0]}</span></td>
+      <td>
+        <span class="rank-badge ${g.gem_rank <= 10 ? 'rank-s' : g.gem_rank <= 50 ? 'rank-a' : 'rank-b'}" style="font-weight:800;">#${g.gem_rank}</span>
+        <span style="font-size:9px; color:var(--muted); margin-left:3px;">(${g.gem_pct}%)</span>
+      </td>
+      <td><button class="btn-ai" onclick="analyzeOnePokemon(${pIdx})">🤖 AI</button></td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="9" style="padding:16px;text-align:center;color:var(--muted)">${isPl ? "Brak perełek PvP w plecaku" : "No PvP gems in bag"}</td></tr>`;
+}
+
+async function showPurifyComparison(index) {
+  const p = S.pokemons[index];
+  const title = _lang === "pl" ? `⚖️ ${p.name} — Symulator Oczyszczania` : `⚖️ ${p.name} — Purify Simulator`;
+  openModal(title);
+  try {
+    const data = await api(`/api/purify-comparison?index=${index}`);
+    const isPl = _lang === "pl";
+    
+    const html = `
+      <p style="font-size:13px; color:var(--muted); margin-bottom:14px;">
+        ${isPl ? "Porównanie parametrów przed i po oczyszczeniu." : "Comparison of parameters before and after purification."}
+      </p>
+      
+      <div class="compare-container">
+        <!-- Shadow Card -->
+        <div class="compare-card shadow-compare">
+          <div class="compare-header" style="color:var(--purple);">
+            <span>💀 Shadow</span>
+            <span class="badge badge-shadow" style="font-size:9px;">+20% Atk</span>
+          </div>
+          <div class="compare-stat-row">
+            <span>CP</span>
+            <b style="color:var(--text);">${data.shadow.cp}</b>
+          </div>
+          <div class="compare-stat-row">
+            <span>${isPl ? "Poziom (Lvl)" : "Level (Lvl)"}</span>
+            <b>${data.shadow.lvl}</b>
+          </div>
+          <div class="compare-stat-row">
+            <span>IV %</span>
+            <b class="${ivClass(data.shadow.iv_pct)}">${data.shadow.iv_pct}%</b>
+          </div>
+          <div class="compare-stat-row">
+            <span>A / D / S</span>
+            <b class="mono">${data.shadow.iv_a} / ${data.shadow.iv_d} / ${data.shadow.iv_s}</b>
+          </div>
+        </div>
+
+        <!-- Purified Card -->
+        <div class="compare-card purified-compare">
+          <div class="compare-header" style="color:var(--cyan);">
+            <span>✨ Purified</span>
+            <span class="badge badge-gl" style="font-size:9px; background:rgba(56,189,248,.12); color:#38bdf8; border:1px solid rgba(56,189,248,.3);">${isPl ? "-10% kosztu" : "-10% cost"}</span>
+          </div>
+          <div class="compare-stat-row">
+            <span>CP</span>
+            <b style="color:var(--accent); font-weight:800;">${data.purified.cp}</b>
+          </div>
+          <div class="compare-stat-row">
+            <span>${isPl ? "Poziom (Lvl)" : "Level (Lvl)"}</span>
+            <b>${data.purified.lvl} <span style="font-size:10px; color:var(--green); font-weight:normal;">(↑ L25)</span></b>
+          </div>
+          <div class="compare-stat-row">
+            <span>IV %</span>
+            <b class="${ivClass(data.purified.iv_pct)}">${data.purified.iv_pct}% <span style="font-size:10px; color:var(--green); font-weight:normal;">(+2 każdy)</span></b>
+          </div>
+          <div class="compare-stat-row">
+            <span>A / D / S</span>
+            <b class="mono" style="color:var(--green);">${data.purified.iv_a} / ${data.purified.iv_d} / ${data.purified.iv_s}</b>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cost Section -->
+      <div style="background:var(--bg3); padding:10px 14px; border-radius:8px; border:1px solid var(--border2); margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+        <span>💰 ${isPl ? "Koszt oczyszczenia:" : "Purification cost:"}</span>
+        <b style="color:var(--yellow); font-family:var(--fm)">✨ ${data.purify_dust.toLocaleString()} Dust &nbsp;💊 ${data.purify_candy} Candy</b>
+      </div>
+
+      <!-- Verdict Section -->
+      <div style="background:rgba(255,255,255,0.03); border-left:4px solid var(--accent); padding:12px 16px; border-radius:4px; font-size:13px; line-height:1.5; margin-bottom:20px;">
+        ${data.verdict}
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <button class="btn btn-secondary" onclick="$('ai-modal').classList.remove('open')" style="padding:6px 12px; font-size:12px; cursor:pointer;">
+          ${isPl ? "Zamknij" : "Close"}
+        </button>
+        <button class="btn-ai" onclick="analyzeOnePokemon(${index})" style="padding:6px 14px; font-size:12px;">
+          🤖 ${isPl ? "Zapytaj Trenera AI" : "Ask AI Coach"}
+        </button>
+      </div>
+    `;
+    setModalContent(html, false);
+  } catch (e) {
+    setModalContent(`<p class="alert alert-err">Błąd: ${e.message}</p>`, false);
+  }
+}
+
 // ── Rozwój ────────────────────────────────────────────────────────────────────
 let _developData = null;
 
@@ -1340,6 +1489,8 @@ function renderDevelop() {
   $("dev-purify-tbody").innerHTML = d.purify.map(p => {
     const pA = Math.min(15, p.iv_a+2), pD = Math.min(15, p.iv_d+2), pS = Math.min(15, p.iv_s+2);
     const tc = (p.best_tier && p.best_tier.startsWith("S")) ? "badge-s" : (p.best_tier && p.best_tier.startsWith("A")) ? "badge-a" : "";
+    const pIdx = _devPokeIdx(p);
+    const btnLabel = _lang === "pl" ? "⚖️ Porównaj" : "⚖️ Compare";
     return `<tr>
       <td class="name-cell">${p.name}</td>
       <td class="cp-cell">${p.cp}</td>
@@ -1347,7 +1498,10 @@ function renderDevelop() {
       <td class="${ivClass(p.purified_iv)}" style="font-weight:700">${p.purified_iv}%</td>
       <td class="mono">${p.iv_a}/${p.iv_d}/${p.iv_s} → <span style="color:var(--green)">${pA}/${pD}/${pS}</span></td>
       <td>${tc ? `<span class="badge ${tc}">${p.best_tier}</span>` : `<span style="color:var(--muted)">—</span>`}</td>
-      <td><button class="btn-ai" onclick="analyzeOnePokemon(${_devPokeIdx(p)})">🤖 AI</button></td>
+      <td>
+        <button class="btn" style="padding:2px 8px; font-size:10px; background:var(--accent); border:none; color:var(--bg1); cursor:pointer; font-weight:700; border-radius:4px; margin-right:4px;" onclick="showPurifyComparison(${pIdx})">${btnLabel}</button>
+        <button class="btn-ai" onclick="analyzeOnePokemon(${pIdx})">🤖 AI</button>
+      </td>
     </tr>`;
   }).join("") || `<tr><td colspan="7" style="padding:16px;text-align:center;color:var(--muted)">Brak shadow pokemonów z IV≥78 przed oczyszczeniem</td></tr>`;
 

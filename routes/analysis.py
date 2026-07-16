@@ -595,3 +595,199 @@ def api_evolve_prediction():
     return jsonify({
         "evolutions": evos
     })
+
+
+@bp.route("/api/pvp-hidden-gems")
+def api_pvp_hidden_gems():
+    if not _state["loaded"]:
+        return jsonify([])
+        
+    from data.base_stats import _EVOLVE_CHAIN
+    from data.pokedex import DEX
+    from scoring import pvp_iv_rank
+    
+    gems = []
+    for p in _state["pokemons"]:
+        # Find all possible evolutions
+        evolutions = [p["pid"]]
+        curr = p["pid"]
+        while curr in _EVOLVE_CHAIN:
+            curr = _EVOLVE_CHAIN[curr]
+            evolutions.append(curr)
+            
+        best_find = None
+        for target_pid in evolutions:
+            target_name = DEX.get(target_pid) or p["name"]
+            
+            # Check Great League (1500)
+            gl_rank, gl_total, gl_pct = pvp_iv_rank(target_pid, p["iv_a"], p["iv_d"], p["iv_s"], 1500)
+            if 0 < gl_rank <= 100:
+                if not best_find or gl_rank < best_find["rank"]:
+                    best_find = {
+                        "league": "GL (1500)",
+                        "target_name": target_name,
+                        "rank": gl_rank,
+                        "total": gl_total,
+                        "pct": gl_pct
+                    }
+                    
+            # Check Ultra League (2500)
+            ul_rank, ul_total, ul_pct = pvp_iv_rank(target_pid, p["iv_a"], p["iv_d"], p["iv_s"], 2500)
+            if 0 < ul_rank <= 100:
+                if not best_find or ul_rank < best_find["rank"]:
+                    best_find = {
+                        "league": "UL (2500)",
+                        "target_name": target_name,
+                        "rank": ul_rank,
+                        "total": ul_total,
+                        "pct": ul_pct
+                    }
+                    
+            # Check Little League (500)
+            ll_rank, ll_total, ll_pct = pvp_iv_rank(target_pid, p["iv_a"], p["iv_d"], p["iv_s"], 500)
+            if 0 < ll_rank <= 100:
+                if not best_find or ll_rank < best_find["rank"]:
+                    best_find = {
+                        "league": "LL (500)",
+                        "target_name": target_name,
+                        "rank": ll_rank,
+                        "total": ll_total,
+                        "pct": ll_pct
+                    }
+
+        if best_find:
+            gems.append({
+                "pid": p["pid"],
+                "name": p["name"],
+                "cp": p["cp"],
+                "lvl": p["lvl"],
+                "iv_pct": p["iv_pct"],
+                "iv_a": p["iv_a"],
+                "iv_d": p["iv_d"],
+                "iv_s": p["iv_s"],
+                "shiny": p.get("shiny", False),
+                "shadow": p.get("shadow", False),
+                "lucky": p.get("lucky", False),
+                "fav": p.get("fav", False),
+                "gem_league": best_find["league"],
+                "gem_target": best_find["target_name"],
+                "gem_rank": best_find["rank"],
+                "gem_total": best_find["total"],
+                "gem_pct": best_find["pct"]
+            })
+            
+    gems.sort(key=lambda x: x["gem_rank"])
+    return jsonify(gems)
+
+
+@bp.route("/api/purify-comparison")
+def api_purify_comparison():
+    idx = request.args.get("index", type=int)
+    if idx is None or idx < 0 or idx >= len(_state["pokemons"]):
+        return jsonify({"error": "Nieprawidłowy indeks Pokémona"}), 400
+        
+    p = _state["pokemons"][idx]
+    if not p.get("shadow"):
+        return jsonify({"error": "Ten Pokémon nie jest w formie Shadow"}), 400
+        
+    # Calculate Purified stats
+    pa = min(15, p["iv_a"] + 2)
+    pd = min(15, p["iv_d"] + 2)
+    ps = min(15, p["iv_s"] + 2)
+    p_pct = round((pa + pd + ps) / 45 * 100, 1)
+    p_lvl = max(25.0, p["lvl"])
+    
+    # Calculate CP after purification
+    from scoring import _best_cpm_idx, _CPM_VALUES, _stat_product
+    from data.base_stats import _BS, DEX
+    import math
+    
+    p_cp = p["cp"]
+    bs = _BS.get(p["pid"])
+    if bs:
+        ba, bd, bst = bs
+        ea = ba + pa
+        ed = bd + pd
+        es = bst + ps
+        
+        # Get CPM index for max(25.0, current_level)
+        cpm_idx = int((p_lvl - 1) * 2)
+        if 0 <= cpm_idx < len(_CPM_VALUES):
+            cpm = _CPM_VALUES[cpm_idx]
+            p_cp = max(10, math.floor(ea * math.sqrt(ed) * math.sqrt(es) * (cpm ** 2) / 10))
+            
+    # Purify cost estimation
+    purify_dust = 3000
+    purify_candy = 3
+    
+    name = p["name"]
+    # Check for legendaries/mythicals
+    if name in {"Articuno", "Zapdos", "Moltres", "Mewtwo", "Raikou", "Entei", "Suicune", "Lugia", "Ho-Oh", "Regirock", "Regice", "Registeel", "Latias", "Latios", "Kyogre", "Groudon", "Rayquaza"}:
+        purify_dust = 20000
+        purify_candy = 20
+    elif name in {"Zubat", "Rattata", "Sentret", "Poochyena", "Lillipup", "Starly", "Bidoof", "Purrloin", "Weedle", "Caterpie"}:
+        purify_dust = 1000
+        purify_candy = 1
+    elif name in {"Snorlax", "Lapras", "Dratini", "Larvitar", "Bagon", "Beldum", "Gible", "Deino"}:
+        purify_dust = 5000
+        purify_candy = 5
+        
+    # Meta recommendation check
+    from services.tiers import get_tier_list
+    tiers = get_tier_list()
+    raid_tiers = tiers.get("raids", {})
+    is_s = name in raid_tiers.get("S", [])
+    is_a = name in raid_tiers.get("A", [])
+    
+    verdict = ""
+    if is_s or is_a:
+        verdict = (
+            f"<strong>Zalecenie: Zachowaj jako SHADOW!</strong><br>"
+            f"{name} to wybitny napastnik rajdowy. Bonus <strong>+20% do obrażeń Shadow</strong> "
+            f"jest znacznie silniejszy niż wzrost IV o 2 punkty. Jako Shadow zada o około 15-18% większe obrażenia "
+            f"w tym samym czasie niż wersja oczyszczona!"
+        )
+    elif name in {"Charizard", "Blastoise", "Venusaur", "Gengar", "Tyranitar", "Salamence", "Gardevoir", "Gallade", "Pinsir", "Scizor", "Houndoom", "Manectric", "Abomasnow", "Aerodactyl", "Aggron", "Sceptile", "Swampert", "Blaziken"}:
+        verdict = (
+            f"<strong>Zalecenie: Rozważ oczyszczenie dla MEGA EWOLUCJI!</strong><br>"
+            f"Ten Pokémon posiada formę Mega Ewolucji. Formy Mega nie mogą być używane w wersji Shadow. "
+            f"Jeśli nie masz jeszcze perfekcyjnego (Hundo) okazu do Mega Ewolucji, oczyszczenie go do <strong>{p_pct}% IV</strong> "
+            f"da Ci doskonałą bazę pod Mega Ewolucję."
+        )
+    elif name == "Sableye":
+        verdict = (
+            f"<strong>Zalecenie: Oczyść pod PvP!</strong><br>"
+            f"Sableye w Great League wymaga unikalnego, silnego ładowanego ataku <strong>Return (Powrót)</strong>, "
+            f"który można zdobyć wyłącznie poprzez oczyszczenie."
+        )
+    else:
+        verdict = (
+            f"<strong>Zalecenie: Możesz oczyścić.</strong><br>"
+            f"Oczyszczenie podniesie statystyki IV do <strong>{p_pct}%</strong> oraz da 10% rabatu na koszty Power-up. "
+            f"Gatunek ten nie jest kluczowym napastnikiem rajdowym, więc bonus Shadow nie jest krytyczny."
+        )
+
+    return jsonify({
+        "name": name,
+        "pid": p["pid"],
+        "purify_dust": purify_dust,
+        "purify_candy": purify_candy,
+        "shadow": {
+            "cp": p["cp"],
+            "lvl": p["lvl"],
+            "iv_a": p["iv_a"],
+            "iv_d": p["iv_d"],
+            "iv_s": p["iv_s"],
+            "iv_pct": p["iv_pct"]
+        },
+        "purified": {
+            "cp": p_cp,
+            "lvl": p_lvl,
+            "iv_a": pa,
+            "iv_d": pd,
+            "iv_s": ps,
+            "iv_pct": p_pct
+        },
+        "verdict": verdict
+    })
+

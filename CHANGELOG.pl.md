@@ -13,6 +13,9 @@ a projekt stosuje się do [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 ### Dodano
 - **Interfejs API do automatycznej synchronizacji (HTTP POST)**: Rozbudowano endpoint `/api/upload` o obsługę bezpośrednich zapytań HTTP POST przesyłających surowy plik JSON (odpowiednik `pgsstats.json`). W sekcji wgrywania danych dodano rozwijaną instrukcję (`<details>`) z gotowym poleceniem curl, ułatwiając konfigurację automatycznego przesyłu danych za pomocą skryptów lub webhooków (np. Tasker).
 - **Nasłuchiwanie na wszystkich interfejsach i wykrywanie IP hosta**: Skonfigurowano serwer Flask, aby nasłuchiwał na adresie `0.0.0.0` (wszystkie karty sieciowe), co umożliwia aplikacji PGSharp na telefonie (w tej samej sieci Wi-Fi) bezpośrednie wysyłanie danych logowania na komputer. Rozbudowano endpoint `/api/status` o dynamiczne pobieranie lokalnego IP komputera (np. `192.168.x.x`), dzięki czemu instrukcja w interfejsie wyświetla teraz dokładny adres URL, który należy wpisać w telefonie.
+- **Ukryte Perełki PvP**: Dodano skaner, który przeszukuje cały plecak i odnajduje niewewoluowane Pokémony posiadające wybitny ranking PvP IV (Rank 1-100) w ligach Great, Ultra lub Little League po pełnej ewolucji.
+- **Symulator Oczyszczania Shadow vs Purified**: Wdrożono interaktywne zestawienie porównawcze w sekcji oczyszczania. Pokazuje ono obok siebie zmianę CP, poziomu, statystyk, koszty oczyszczenia oraz spersonalizowaną rekomendację czy warto oczyszczać, czy zachować formę Shadow.
+
 
 ### Naprawiono
 - **Wizualizacja i filtry pod-tierów (S+, A+, B+)**: Naprawiono błąd braku tła graficznego (badge) dla pod-tierów (np. S+, B+), wyodrębniając pierwszy znak poziomu dla klas stylów CSS. Skorygowano także dopasowania filtrów meta, dzięki czemu Pokémony z pod-tierami są poprawnie chronione i widoczne przy filtrowaniu S/A.

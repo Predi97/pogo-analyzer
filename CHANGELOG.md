@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Automated JSON Post / Sync API**: Enhanced the `/api/upload` endpoint to support direct HTTP POST requests with a raw JSON payload (representing `pgsstats.json` contents). Added an expandable instructions block (`<details>`) to the upload zone with native localizations and copy-pasteable curl command references, allowing users to easily automate account data synchronization via shell scripts or webhooks.
 - **All Interfaces Binding and Local IP Discovery**: Set Flask server to listen on `0.0.0.0` (all network interfaces), allowing the PGSharp mobile app on the same local Wi-Fi network to POST its statistics directly to the host PC. Enhanced `/api/status` to dynamically discover the PC's host IP (e.g. `192.168.x.x`), updating the UI setup instructions in real-time with the exact URL to enter in the phone client.
+- **PvP Hidden Gems**: Added a scanner that loops through the entire Pokémon box and discovers unevolved specimens with exceptional PvP IV ranks (Rank 1-100) for Great League, Ultra League, or Little League when fully evolved.
+- **Shadow vs Purified Comparison**: Implemented an interactive side-by-side comparison tool in the Purify checklist. Displays stat comparisons, level-ups, CP changes, costs, and customized meta recommendations on whether to purify or keep as Shadow.
+
 
 ### Fixed
 - **Sub-tier Badge Styling and Filters**: Fixed sub-tier badges (e.g. S+, A+, B+) failing to render background styling by extracting the base tier level character for CSS class bindings. Corrected meta filter matches so that sub-tier rankings are properly protected and selectable in S/A filters.

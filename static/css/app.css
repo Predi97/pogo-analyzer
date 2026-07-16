@@ -508,3 +508,53 @@ tr:hover td{background:rgba(163,240,80,.025)}
   opacity: 1;
   transform: translateY(0);
 }
+
+.badge-ll {background:rgba(251,113,133,.12);color:#fb7185;border:1px solid rgba(251,113,133,.3)}
+
+/* ── Comparison Layout ── */
+.compare-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 14px;
+  margin-bottom: 14px;
+}
+@media (max-width: 580px) {
+  .compare-container {
+    grid-template-columns: 1fr;
+  }
+}
+.compare-card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+}
+.compare-card.shadow-compare {
+  border-color: rgba(168,85,247,.3);
+  box-shadow: 0 0 10px rgba(168,85,247,.05);
+}
+.compare-card.purified-compare {
+  border-color: rgba(56,189,248,.3);
+  box-shadow: 0 0 10px rgba(56,189,248,.05);
+}
+.compare-header {
+  font-family: var(--fh);
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.compare-stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  font-size: 13px;
+}
+.compare-stat-row:last-child {
+  border-bottom: none;
+}
+

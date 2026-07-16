@@ -1,0 +1,48 @@
+<aside id="sidebar">
+  <div class="sidebar-header">
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 8px;">
+      <div class="logo">⚡ PokéGO <span>Analyzer</span></div>
+      <div class="lang-selector" style="display: flex; gap: 8px; align-items: center; margin-top: -4px;">
+        <span id="lang-pl" title="Polski" style="cursor: pointer; font-size: 18px; transition: all 0.2s ease;">🇵🇱</span>
+        <span id="lang-en" title="English" style="cursor: pointer; font-size: 18px; transition: all 0.2s ease;">🇺🇸</span>
+      </div>
+    </div>
+    <p id="header-sub">Wgraj PGSStats.json lub CSV żeby zacząć</p>
+    <div id="upload-small">
+      <div class="btn btn-outline btn-sm">↺ Zmień plik</div>
+      <input type="file" accept=".json,.csv" id="upload-input-small">
+    </div>
+  </div>
+
+  <!-- Player Card in Sidebar -->
+  <div id="sidebar-player" style="display: none; padding: 10px 16px; border-bottom: 1px solid var(--border); align-items: center; gap: 10px;">
+    <div id="s-player-avatar" style="width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 800; border: 2px solid var(--muted); flex-shrink: 0; background: var(--bg3);"></div>
+    <div style="display: flex; flex-direction: column; overflow: hidden; line-height: 1.35;">
+      <div id="s-player-name" style="font-weight: 700; color: var(--text); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></div>
+      <div id="s-player-level" style="font-size: 11px; color: var(--muted); font-family: var(--fm);"></div>
+    </div>
+  </div>
+
+  <div id="stats-bar">
+    <div class="stat-chip">Pokemon <b id="s-total">0</b></div>
+    <div class="stat-chip">✨ Shiny <b id="s-shiny">0</b></div>
+    <div class="stat-chip">💯 Hundo <b id="s-hundo">0</b></div>
+    <div class="stat-chip">❌ Nando <b id="s-nando">0</b></div>
+    <div class="stat-chip">👻 Shadow <b id="s-shadow">0</b></div>
+    <div class="stat-chip">🍀 Lucky <b id="s-lucky">0</b></div>
+    <div class="stat-chip">⭐ Stardust <b id="s-dust">—</b></div>
+  </div>
+
+  <nav id="tabs">
+    <button class="tab active" data-tab="pokemon">🎮 Pokemony <span class="tab-badge" id="tb-poke"></span></button>
+    <button class="tab" data-tab="raid">⚔️ Raidy</button>
+    <button class="tab" data-tab="pvp">🏆 PvP</button>
+    <button class="tab" data-tab="items">🎒 Ekwipunek</button>
+    <button class="tab" data-tab="events">📅 Eventy</button>
+    <button class="tab" data-tab="tiers">🥇 Tier Lista</button>
+    <button class="tab" data-tab="develop">🔧 Rozwój</button>
+    <button class="tab" data-tab="settings">⚙️ Ustawienia</button>
+  </nav>
+
+  <div class="sidebar-hint">Wgraj plik JSON lub CSV żeby zacząć</div>
+</aside>

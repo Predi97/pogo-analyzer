@@ -1,0 +1,51 @@
+<div class="regex-bar" style="display: flex; flex-direction: column; gap: 12px; padding: 16px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+    <span class="rlabel" id="lbl-regex-pogo">🔍 Regex PoGO</span>
+    <span id="regex-hint" style="color:var(--muted);font-size:10px;"></span>
+  </div>
+  
+  <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; border-bottom: 1px solid var(--border2); padding-bottom: 10px; width: 100%;">
+    <span style="font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; margin-right: 6px;" id="lbl-regex-protect">Chroń:</span>
+    <label><input type="checkbox" id="ropt-hundo" checked> 💯 Hundo</label>
+    <label><input type="checkbox" id="ropt-nando" checked> ❌ Nando</label>
+    <label><input type="checkbox" id="ropt-shiny" checked> ✨ Shiny</label>
+    <label><input type="checkbox" id="ropt-shadow" checked> 👻 Shadow</label>
+    <label><input type="checkbox" id="ropt-lucky" checked> 🍀 Lucky</label>
+    <label><input type="checkbox" id="ropt-fav" checked> ⭐ Ulubione</label>
+    <label><input type="checkbox" id="ropt-meta" checked> 🥇 Meta S/A</label>
+    <label><input type="checkbox" id="ropt-iv" checked> 3★+ (IV≥82%)</label>
+    <label><input type="checkbox" id="ropt-pvp" checked> PvP Rank≤500</label>
+    <label><input type="checkbox" id="ropt-lvl" checked> Lvl≥35</label>
+    <label style="gap: 4px; display: inline-flex; align-items: center;">
+      <span id="lbl-ropt-cp-min-lbl">CP≥</span>
+      <input type="number" id="ropt-cp-min" placeholder="1200" min="10" max="9999" value="1200" style="width:65px">
+    </label>
+  </div>
+  
+  <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; width: 100%;">
+    <span style="font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; margin-right: 6px;" id="lbl-regex-exclude">Dodaj filtry wykluczające (&!):</span>
+    <label><input type="checkbox" id="ropt-ex-shiny"> !shiny</label>
+    <label><input type="checkbox" id="ropt-ex-shadow"> !shadow</label>
+    <label><input type="checkbox" id="ropt-ex-lucky"> !lucky</label>
+    <label><input type="checkbox" id="ropt-ex-fav"> !ulubione</label>
+    <label><input type="checkbox" id="ropt-ex-legendary"> !legendary</label>
+    <label><input type="checkbox" id="ropt-ex-mythical"> !mythical</label>
+    <label><input type="checkbox" id="ropt-ex-ub"> !ub</label>
+    <label><input type="checkbox" id="ropt-ex-costume"> !costume</label>
+    <label><input type="checkbox" id="ropt-ex-purified"> !purified</label>
+    <label><input type="checkbox" id="ropt-ex-buddy"> !buddy</label>
+    <label><input type="checkbox" id="ropt-ex-defender"> !defender</label>
+    <label><input type="checkbox" id="ropt-ex-mega"> !mega</label>
+    <label style="gap: 4px; display: inline-flex; align-items: center;">
+      <input type="checkbox" id="ropt-cp">
+      <span id="lbl-ropt-cp-lbl">max CP:</span>
+      <input type="number" id="ropt-cp-val" placeholder="500" min="10" max="9999" style="width:70px">
+    </label>
+  </div>
+  
+  <div style="display: flex; gap: 8px; width: 100%; align-items: center; border-top: 1px dashed var(--border2); padding-top: 10px; margin-top: 4px;">
+    <input type="text" id="regex-query-input" readonly placeholder="Wybierz filtry powyżej, aby wygenerować regex..." style="flex: 1; background: var(--bg2); border: 1px solid var(--border2); padding: 8px 12px; border-radius: 6px; font-family: var(--fm); font-size: 12px; color: var(--accent); outline: none;">
+    <button class="btn btn-outline btn-sm" id="btn-copy-regex" style="white-space: nowrap; height: 36px; padding: 0 16px;">📋 Kopiuj regex</button>
+    <button class="btn btn-outline btn-sm" id="btn-filter-trash" style="white-space: nowrap; height: 36px; padding: 0 16px; border-color: var(--red); color: var(--red);" title="Filtruj tabelę, pokazując tylko kandydatów do transferu">🗑️ Filtruj listę</button>
+  </div>
+</div>

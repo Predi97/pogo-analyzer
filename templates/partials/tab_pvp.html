@@ -1,0 +1,59 @@
+<div class="panel" id="panel-pvp">
+  <div class="panel-title">🏆 PvP</div>
+  <!-- PvP Battle Stats Dashboard -->
+  <div id="pvp-stats-card" style="display: none; margin-bottom: 20px;" class="card">
+    <div class="card-title">Twoje statystyki pojedynków PvP</div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px;">
+      <div style="background: var(--bg3); padding: 10px; border-radius: 8px; border: 1px solid var(--border2); text-align: center;">
+        <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Ranga Sezonu</div>
+        <div id="pvp-stat-rank" style="font-family: var(--fm); font-size: 18px; font-weight: 800; color: var(--yellow);">—</div>
+      </div>
+      <div style="background: var(--bg3); padding: 10px; border-radius: 8px; border: 1px solid var(--border2); text-align: center;">
+        <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Wskaźnik Wygranych</div>
+        <div id="pvp-stat-winrate" style="font-family: var(--fm); font-size: 18px; font-weight: 800; color: var(--green);">—</div>
+        <div id="pvp-stat-ratio" style="font-size: 10px; color: var(--muted); margin-top: 2px;">—</div>
+      </div>
+      <div style="background: var(--bg3); padding: 10px; border-radius: 8px; border: 1px solid var(--border2); text-align: center;">
+        <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Najdłuższa seria</div>
+        <div id="pvp-stat-streak" style="font-family: var(--fm); font-size: 18px; font-weight: 800; color: var(--orange);">—</div>
+      </div>
+      <div style="background: var(--bg3); padding: 10px; border-radius: 8px; border: 1px solid var(--border2); text-align: center;">
+        <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Zarobiony Stardust</div>
+        <div id="pvp-stat-dust" style="font-family: var(--fm); font-size: 18px; font-weight: 800; color: var(--accent);">—</div>
+      </div>
+    </div>
+    
+    <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border2); display: flex; gap: 20px; flex-wrap: wrap; font-size: 12px; color: var(--muted);">
+      <div>🟦 Great League: <b id="pvp-stat-gl" style="color: var(--text)">—</b></div>
+      <div>🟣 Ultra League: <b id="pvp-stat-ul" style="color: var(--text)">—</b></div>
+      <div>🟡 Master League: <b id="pvp-stat-ml" style="color: var(--text)">—</b></div>
+    </div>
+  </div>
+  <div class="toolbar">
+    <button class="tab-sub active" data-league="GL">🟦 Great League ≤1500</button>
+    <button class="tab-sub" data-league="UL">🟣 Ultra League ≤2500</button>
+    <button class="tab-sub" data-league="ML">🟡 Master League</button>
+  </div>
+  <div class="alert alert-info">Ranking uwzględnia CP przy limicie ligi, bulk (def×sta), tier listę meta. Posortowane od najlepszego.</div>
+  <!-- Local PvP Team Suggestions -->
+  <div id="pvp-local-teams-card" style="display: none; margin-bottom: 20px;" class="card">
+    <div class="card-title" id="pvp-local-title">Sugerowane składy PvP (kalkulacja lokalna)</div>
+    <div id="pvp-best-by-role" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px; margin-top: 8px;"></div>
+    <div id="pvp-local-teams-list" style="display: flex; flex-direction: column; gap: 12px;"></div>
+  </div>
+  <div class="tbl-wrap">
+    <table id="pvp-table">
+      <thead><tr>
+        <th>#</th><th>Pokemon</th><th>Akt. CP</th><th>CP w lidze</th><th>Lvl</th><th>IV%</th>
+        <th>A/D/S</th><th>Rank IV</th><th>Tier</th><th>Tagi</th><th>AI</th>
+      </tr></thead>
+      <tbody id="pvp-tbody"></tbody>
+    </table>
+  </div>
+
+  <button class="btn btn-primary" id="btn-analyze-pvp" style="margin-top: 16px;">🤖 Analiza AI — składy PvP</button>
+  <div id="pvp-ai-result" style="margin-top: 16px; display: none;" class="card">
+    <div class="card-title" id="pvp-ai-title">Analiza składów PvP</div>
+    <div class="ai-resp" id="pvp-ai-body"></div>
+  </div>
+</div>

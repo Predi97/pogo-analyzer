@@ -1,0 +1,86 @@
+<div class="panel" id="panel-develop">
+  <div class="panel-title">🔧 Rozwój</div>
+
+  <div class="card">
+    <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleDevCard('dev-evolve-content')">
+      <span id="lbl-dev-evolve-title">🥚 Do ewoluowania</span>
+      <span id="dev-evolve-toggle-icon">▼</span>
+    </div>
+    <div id="dev-evolve-preview" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; font-weight:normal;"></div>
+    <div id="dev-evolve-content" style="display:none; padding-top:12px;">
+      <p id="lbl-dev-evolve-desc" style="font-size:12px;color:var(--muted);margin-bottom:12px">
+        Pokemony z IV ≥ 80%, których <strong>końcowa forma jest meta (tier S lub A)</strong>.
+        Ewolucja nie zmienia IV — warto ewoluować zanim będziesz power-upował.
+      </p>
+      <div class="tbl-wrap"><table>
+        <thead><tr>
+          <th>Pokemon (pre-evo)</th><th>CP</th><th>Lvl</th><th>IV%</th>
+          <th>→ Prognoza Ewolucji</th><th>Tier</th><th>Tagi</th><th>AI</th>
+        </tr></thead>
+        <tbody id="dev-evolve-tbody"></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleDevCard('dev-powerup-content')">
+      <span id="lbl-dev-powerup-title">⚡ Do ulepszenia (Power Up)</span>
+      <span id="dev-powerup-toggle-icon">▼</span>
+    </div>
+    <div id="dev-powerup-preview" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; font-weight:normal;"></div>
+    <div id="dev-powerup-content" style="display:none; padding-top:12px;">
+      <p id="lbl-dev-powerup-desc" style="font-size:12px;color:var(--muted);margin-bottom:12px">
+        Meta pokemon (tier S/A) z IV ≥ 80% poniżej <strong>poziomu 40</strong>.
+        Inwestycja w stardust opłaca się tylko dla meta okazów. Wybierz docelowy poziom, by sprawdzić koszt i CP.
+      </p>
+      <div class="tbl-wrap"><table>
+        <thead><tr>
+          <th>Pokemon</th><th>CP</th><th>Lvl</th><th>IV%</th>
+          <th>A/D/S</th><th>Poziom docelowy</th><th>Prognoza kosztu / CP</th><th>AI</th>
+        </tr></thead>
+        <tbody id="dev-powerup-tbody"></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleDevCard('dev-purify-content')">
+      <span id="lbl-dev-purify-title">✨ Do oczyszczenia (Purify Shadow)</span>
+      <span id="dev-purify-toggle-icon">▼</span>
+    </div>
+    <div id="dev-purify-preview" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; font-weight:normal;"></div>
+    <div id="dev-purify-content" style="display:none; padding-top:12px;">
+      <p id="lbl-dev-purify-desc" style="font-size:12px;color:var(--muted);margin-bottom:12px">
+        Shadow pokemony, których IV <strong>po oczyszczeniu (+2 do każdego, max 15)</strong> osiągnie ≥ 80%.
+        Shadow bonus (+20% ataku) vs. lepsze IV — zapytaj AI co bardziej się opłaca.
+      </p>
+      <div class="tbl-wrap"><table>
+        <thead><tr>
+          <th>Pokemon</th><th>CP</th><th>IV teraz</th><th>IV po ocz.</th>
+          <th>A/D/S → po oczyszcz.</th><th>Tier</th><th>AI</th>
+        </tr></thead>
+        <tbody id="dev-purify-tbody"></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleDevCard('dev-tm-content')">
+      <span id="lbl-dev-tm-title">⚔️ Kandydaci na Elite TM</span>
+      <span id="dev-tm-toggle-icon">▼</span>
+    </div>
+    <div id="dev-tm-preview" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; font-weight:normal;"></div>
+    <div id="dev-tm-content" style="display:none; padding-top:12px;">
+      <p id="lbl-dev-tm-desc" style="font-size:12px;color:var(--muted);margin-bottom:12px">
+        Meta pokemon (tier S/A) na <strong>poziomie ≥ 35</strong> — warte sprawdzenia czy mają
+        optymalne ataki. Elite Fast/Charged TM pozwala nauczyć legacy lub ekskluzywnych ruchów.
+      </p>
+      <div class="tbl-wrap"><table>
+        <thead><tr>
+          <th>Pokemon</th><th>CP</th><th>Obecne ataki</th><th>Zestaw PvP</th><th>Zestaw PvE (Raid)</th><th>Sugestia TM</th>
+        </tr></thead>
+        <tbody id="dev-tm-tbody"></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>

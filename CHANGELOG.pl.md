@@ -5,6 +5,11 @@ Wszystkie istotne zmiany w tym projekcie będą dokumentowane w tym pliku.
 Format opiera się na [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 a projekt stosuje się do [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-07-16
+
+### Zrefaktoryzowano
+- **Modularyzacja szablonów frontendowych**: Rozbito olbrzymi plik `index.html` (153 KB) na lekkie, niezależne komponenty pomocnicze (panel boczny, pasek regex, poszczególne panele zakładek) w katalogu `templates/partials/` oraz przeniesiono wszystkie reguły stylów do `static/css/app.css` i skryptów aplikacji do `static/js/app.js`. Zmiana ta porządkuje strukturę frontendu według dobrych praktyk Jinja2 we Flasku i umożliwia cache'owanie zasobów przez przeglądarkę.
+
 ## [1.2.0] - 2026-07-15
 
 ### Dodano

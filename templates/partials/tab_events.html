@@ -1,0 +1,19 @@
+<div class="panel" id="panel-events">
+  <div class="panel-title">📅 Eventy</div>
+  <div class="toolbar">
+    <button class="btn btn-outline btn-sm" id="btn-refresh-events">🔄 Odśwież eventy</button>
+    <select id="events-filter">
+      <option value="all">Wszystkie statusy</option>
+      <option value="active">🟢 Aktywne</option>
+      <option value="upcoming">🔵 Nadchodzące</option>
+      <option value="ended">⬜ Zakończone</option>
+    </select>
+    <select id="events-tier-filter">
+      <option value="all">Wszystkie Pokemony</option>
+      <option value="meta">Wartościowe (S/A/B)</option>
+      <option value="s_only">Tylko top tier (S)</option>
+    </select>
+    <input type="text" id="events-search" placeholder="Szukaj wydarzenia lub Pokémona..." style="flex: 1; max-width: 300px;">
+  </div>
+  <div id="events-list" class="events-grid"></div>
+</div>

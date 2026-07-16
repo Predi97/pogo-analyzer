@@ -1455,7 +1455,9 @@ const translations = {
     btnExportCsv: "📥 Export CSV",
     btnRawCsv: "📦 Raw JSON→CSV",
     btnInventoryCsv: "💰 Ekwipunek CSV",
-    roptCpValPlaceholder: "np. 500"
+    roptCpValPlaceholder: "np. 500",
+    lblAutoSyncTitle: "🚀 Automatyczna synchronizacja (API POST)",
+    lblAutoSyncDesc: "Możesz wysłać plik automatycznie za pomocą skryptu lub aplikacji webhook (np. Tasker, curl, PowerShell), wykonując żądanie HTTP POST z zawartością pliku JSON na adres:<br><code style='background:rgba(255,255,255,0.06);padding:3px 6px;border-radius:4px;font-family:var(--fmono);display:block;margin-top:4px;word-break:break-all;color:var(--text);border:1px solid var(--border)'>http://127.0.0.1:5000/api/upload</code><br>Przykładowy curl:<br><code style='background:rgba(255,255,255,0.06);padding:3px 6px;border-radius:4px;font-family:var(--fmono);display:block;margin-top:4px;word-break:break-all;color:var(--text);border:1px solid var(--border)'>curl -X POST -H \"Content-Type: application/json\" -d @pgsstats.json http://127.0.0.1:5000/api/upload</code>"
   },
   en: {
     headerSub: "Upload PGSStats.json to begin",
@@ -1492,7 +1494,9 @@ const translations = {
     btnExportCsv: "📥 Export CSV",
     btnRawCsv: "📦 Raw JSON→CSV",
     btnInventoryCsv: "💰 Inventory CSV",
-    roptCpValPlaceholder: "e.g. 500"
+    roptCpValPlaceholder: "e.g. 500",
+    lblAutoSyncTitle: "🚀 Automatic Synchronization (API POST)",
+    lblAutoSyncDesc: "You can send the file automatically using a script or webhook application (e.g. Tasker, curl, PowerShell) by sending an HTTP POST request with the JSON file contents to:<br><code style='background:rgba(255,255,255,0.06);padding:3px 6px;border-radius:4px;font-family:var(--fmono);display:block;margin-top:4px;word-break:break-all;color:var(--text);border:1px solid var(--border)'>http://127.0.0.1:5000/api/upload</code><br>Example curl:<br><code style='background:rgba(255,255,255,0.06);padding:3px 6px;border-radius:4px;font-family:var(--fmono);display:block;margin-top:4px;word-break:break-all;color:var(--text);border:1px solid var(--border)'>curl -X POST -H \"Content-Type: application/json\" -d @pgsstats.json http://127.0.0.1:5000/api/upload</code>"
   }
 };
 
@@ -1647,6 +1651,12 @@ function applyLanguage() {
   if (uploadTag) uploadTag.textContent = _lang === "pl"
     ? "📌 Plik czytany lokalnie — dane nie opuszczają maszyny"
     : "📌 File processed locally — data does not leave your machine";
+
+  const syncTitle = $("lbl-auto-sync-title");
+  if (syncTitle) syncTitle.innerHTML = t.lblAutoSyncTitle;
+  const syncDesc = $("lbl-auto-sync-desc");
+  if (syncDesc) syncDesc.innerHTML = t.lblAutoSyncDesc;
+
 
   const uploadSmallBtn = document.querySelector("#upload-small .btn");
   if (uploadSmallBtn) uploadSmallBtn.textContent = t.changeFile;

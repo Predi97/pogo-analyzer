@@ -9,6 +9,8 @@ const S = {
   sort:     "cp",
 };
 
+let _localIp = "127.0.0.1";
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 const $$ = sel => document.querySelectorAll(sel);
@@ -1655,7 +1657,7 @@ function applyLanguage() {
   const syncTitle = $("lbl-auto-sync-title");
   if (syncTitle) syncTitle.innerHTML = t.lblAutoSyncTitle;
   const syncDesc = $("lbl-auto-sync-desc");
-  if (syncDesc) syncDesc.innerHTML = t.lblAutoSyncDesc;
+  if (syncDesc) syncDesc.innerHTML = t.lblAutoSyncDesc.replace(/127\.0\.0\.1/g, _localIp);
 
 
   const uploadSmallBtn = document.querySelector("#upload-small .btn");
@@ -1846,6 +1848,10 @@ applyLanguage();
 (async function checkRestoredState() {
   try {
     const status = await api("/api/status");
+    if (status.local_ip) {
+      _localIp = status.local_ip;
+      applyLanguage();
+    }
     if (status.loaded) {
       await onUploadSuccess(status.stats, status.player, status.pvp_stats);
     }

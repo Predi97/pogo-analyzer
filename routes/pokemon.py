@@ -21,6 +21,48 @@ bp  = Blueprint("pokemon", __name__)
 
 @bp.route("/api/upload", methods=["POST"])
 def upload():
+    # 1. Support raw JSON or text POST upload (e.g. from an automated script or data server webhook)
+    raw = None
+    if request.is_json:
+        raw = request.get_json()
+    elif request.data:
+        try:
+            raw = json.loads(request.data.decode("utf-8"))
+        except Exception:
+            pass
+
+    if raw:
+        try:
+            parsed = parse_pgo_json(raw)
+            raw_to_save = raw
+
+            _state["pokemons"]  = parsed["pokemons"]
+            _state["items"]     = parsed["items"]
+            _state["player"]    = parsed["player"]
+            _state["pvp_stats"] = parsed["pvp_stats"]
+            _state["loaded"]    = True
+            n = len(parsed["pokemons"])
+            log.info("Uploaded via raw JSON POST: %d pokemons, %d item types", n, len(parsed["items"]))
+            save_upload(raw_to_save)
+            return jsonify({
+                "ok": True,
+                "stats": {
+                    "total":      n,
+                    "shinies":    sum(1 for p in parsed["pokemons"] if p["shiny"]),
+                    "shadows":    sum(1 for p in parsed["pokemons"] if p["shadow"]),
+                    "hundos":     sum(1 for p in parsed["pokemons"] if p["hundo"]),
+                    "luckies":    sum(1 for p in parsed["pokemons"] if p["lucky"]),
+                    "item_types": len(parsed["items"]),
+                },
+                "player": parsed["player"],
+                "pvp_stats": parsed["pvp_stats"],
+                "source": "json_post"
+            })
+        except Exception as exc:
+            log.exception("Raw JSON post parse error")
+            return jsonify({"error": f"Błąd parsowania JSON: {str(exc)}"}), 400
+
+    # 2. Existing multipart/form-data upload
     if "file" not in request.files:
         return jsonify({"error": "Brak pliku w żądaniu"}), 400
     f = request.files["file"]

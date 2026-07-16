@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Refactored
 - **Modularized Frontend Templates**: Refactored the massive 153 KB `index.html` file into lightweight, decoupled partial components (sidebar, regex bar, tabs) under `templates/partials/` and externalized all styling to `static/css/app.css` and application script logic to `static/js/app.js`. This aligns the frontend architecture with Flask/Jinja2 template inheritance best practices and enables browser caching of assets.
 
+### Added
+- **Automated JSON Post / Sync API**: Enhanced the `/api/upload` endpoint to support direct HTTP POST requests with a raw JSON payload (representing `pgsstats.json` contents). Added an expandable instructions block (`<details>`) to the upload zone with native localizations and copy-pasteable curl command references, allowing users to easily automate account data synchronization via shell scripts or webhooks.
+
 ### Fixed
 - **Sub-tier Badge Styling and Filters**: Fixed sub-tier badges (e.g. S+, A+, B+) failing to render background styling by extracting the base tier level character for CSS class bindings. Corrected meta filter matches so that sub-tier rankings are properly protected and selectable in S/A filters.
 - **Silph Road Style POGO Search String Generator**: Replaced the long list of explicit Pokedex IDs to transfer with standard, short search strings natively supported by Pokémon GO (e.g. starting with `0*,1*,2*` or `0*,1*,2*,3*` and appending native exclusions like `!shiny&!shadow&!lucky`). It only appends Pokedex ID exclusions (`!<pid>`) for species with protected specimens that are not covered by status filters, keeping the string extremely short and copy-pasteable in one go.

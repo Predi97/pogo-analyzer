@@ -28,6 +28,15 @@
         📱 <a href="https://www.pgsharp.com/" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none">PGSharp Settings</a> &nbsp;→&nbsp; Export account data na <strong>ON</strong> (na samym dole) &nbsp;→&nbsp; wybierz folder dla pliku <strong>pgsstats.json</strong>
       </div>
       <div class="upload-tag">📌 Plik czytany lokalnie — dane nie opuszczają maszyny</div>
+      <details style="margin-top:12px;font-size:11px;color:var(--muted);width:100%;max-width:400px;text-align:left;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;">
+        <summary style="cursor:pointer;color:var(--accent);font-weight:600;outline:none;user-select:none" id="lbl-auto-sync-title">🚀 Automatyczna synchronizacja (API POST)</summary>
+        <div style="margin-top:6px;line-height:1.6;" id="lbl-auto-sync-desc">
+          Możesz wysłać plik automatycznie za pomocą skryptu lub aplikacji webhook (np. Tasker, curl, PowerShell), wykonując żądanie HTTP POST z zawartością pliku JSON na adres:
+          <code style="background:rgba(255,255,255,0.06);padding:3px 6px;border-radius:4px;font-family:var(--fmono);display:block;margin-top:4px;word-break:break-all;color:var(--text);border:1px solid var(--border)">http://127.0.0.1:5000/api/upload</code>
+          Przykładowy curl:
+          <code style="background:rgba(255,255,255,0.06);padding:3px 6px;border-radius:4px;font-family:var(--fmono);display:block;margin-top:4px;word-break:break-all;color:var(--text);border:1px solid var(--border)">curl -X POST -H "Content-Type: application/json" -d @pgsstats.json http://127.0.0.1:5000/api/upload</code>
+        </div>
+      </details>
     </div>
   </div>
   <div id="upload-err" class="alert alert-err" style="display:none"></div>

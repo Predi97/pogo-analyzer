@@ -10,6 +10,9 @@ a projekt stosuje się do [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 ### Zrefaktoryzowano
 - **Modularyzacja szablonów frontendowych**: Rozbito olbrzymi plik `index.html` (153 KB) na lekkie, niezależne komponenty pomocnicze (panel boczny, pasek regex, poszczególne panele zakładek) w katalogu `templates/partials/` oraz przeniesiono wszystkie reguły stylów do `static/css/app.css` i skryptów aplikacji do `static/js/app.js`. Zmiana ta porządkuje strukturę frontendu według dobrych praktyk Jinja2 we Flasku i umożliwia cache'owanie zasobów przez przeglądarkę.
 
+### Dodano
+- **Interfejs API do automatycznej synchronizacji (HTTP POST)**: Rozbudowano endpoint `/api/upload` o obsługę bezpośrednich zapytań HTTP POST przesyłających surowy plik JSON (odpowiednik `pgsstats.json`). W sekcji wgrywania danych dodano rozwijaną instrukcję (`<details>`) z gotowym poleceniem curl, ułatwiając konfigurację automatycznego przesyłu danych za pomocą skryptów lub webhooków (np. Tasker).
+
 ### Naprawiono
 - **Wizualizacja i filtry pod-tierów (S+, A+, B+)**: Naprawiono błąd braku tła graficznego (badge) dla pod-tierów (np. S+, B+), wyodrębniając pierwszy znak poziomu dla klas stylów CSS. Skorygowano także dopasowania filtrów meta, dzięki czemu Pokémony z pod-tierami są poprawnie chronione i widoczne przy filtrowaniu S/A.
 - **Generator zapytań w stylu Silph Road**: Zastąpiono generowanie długich list konkretnych numerów ID do transferu standardowymi, krótkimi zapytaniami wyszukiwania w Pokémon GO (np. rozpoczynając od `0*,1*,2*` lub `0*,1*,2*,3*` i dołączając natywne wykluczenia `!shiny&!shadow&!lucky`). Wykluczenia po numerach ID (`!<pid>`) są generowane tylko dla gatunków, które posiadają w naszym plecaku cenne, chronione okazy nieobjęte filtrami statusów, co sprawia, że cały ciąg jest bardzo krótki i kopiowalny za jednym razem.

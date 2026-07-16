@@ -26,6 +26,7 @@ a projekt stosuje się do [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 - **Interaktywne Sortowanie Kolumn**: Dodano uniwersalny skrypt sortowania tabel po stronie klienta (dla zakładek Pokemony, Raidy, PvP), pozwalający na kliknięcie nagłówków kolumn i sortowanie rosnąco/malejąco według nazwy, CP, poziomu, procentu IV oraz sumy statystyk IV.
 - **Dynamiczne Parsowanie Form Pokémonów**: Usprawniono mechanizm parsowania gatunków, aby automatycznie rozpoznawał i poprawnie formatował złożone formy (np. `Zacian (Crowned Sword)`, `Giratina (Origin)`, `Landorus (Therian)`) z zapisu CamelCase.
 - **Uporządkowanie Listy Wydarzeń**: Wdrożono domyślne sortowanie wydarzeń (najpierw aktywne kończące się najszybciej, następnie nadchodzące zaczynające się najwcześniej, na końcu zakończone). Naprawiono błąd językowy, przez który nadchodzące wydarzenia bez dokładnej liczby dni wyświetlały się jako `Za undefinedd`.
+- **Dynamiczny Regex i Filtrowanie Transferu**: Zastąpiono statyczny filtr kandydatów do transferu w pełni dynamicznym silnikiem powiązanym z ustawieniami panelu „Regex PoGO”. Dodano stale aktualizowane pole tekstowe z wygenerowaną komendą regex, uproszczono nagłówek sekcji ochrony oraz wprowadzono czerwony przycisk `🗑️ Filtruj listę`, który automatycznie przełącza widok na zakładkę Pokémonów i filtruje ją, pokazując dokładnie te okazy, które zostaną zaznaczone do transferu.
 
 
 

@@ -655,7 +655,7 @@ tr:hover td{background:rgba(163,240,80,.025)}
         </div>
         
         <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; border-bottom: 1px solid var(--border2); padding-bottom: 10px; width: 100%;">
-          <span style="font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; margin-right: 6px;" id="lbl-regex-protect">Chroń (nie dodawaj do transferu):</span>
+          <span style="font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; margin-right: 6px;" id="lbl-regex-protect">Chroń:</span>
           <label><input type="checkbox" id="ropt-hundo" checked> 💯 Hundo</label>
           <label><input type="checkbox" id="ropt-nando" checked> ❌ Nando</label>
           <label><input type="checkbox" id="ropt-shiny" checked> ✨ Shiny</label>
@@ -691,7 +691,12 @@ tr:hover td{background:rgba(163,240,80,.025)}
             <span id="lbl-ropt-cp-lbl">max CP:</span>
             <input type="number" id="ropt-cp-val" placeholder="500" min="10" max="9999" style="width:70px">
           </label>
-          <button class="btn btn-outline btn-sm" id="btn-copy-regex" style="margin-left:auto">📋 Kopiuj regex</button>
+        </div>
+        
+        <div style="display: flex; gap: 8px; width: 100%; align-items: center; border-top: 1px dashed var(--border2); padding-top: 10px; margin-top: 4px;">
+          <input type="text" id="regex-query-input" readonly placeholder="Wybierz filtry powyżej, aby wygenerować regex..." style="flex: 1; background: var(--bg2); border: 1px solid var(--border2); padding: 8px 12px; border-radius: 6px; font-family: var(--fm); font-size: 12px; color: var(--accent); outline: none;">
+          <button class="btn btn-outline btn-sm" id="btn-copy-regex" style="white-space: nowrap; height: 36px; padding: 0 16px;">📋 Kopiuj regex</button>
+          <button class="btn btn-outline btn-sm" id="btn-filter-trash" style="white-space: nowrap; height: 36px; padding: 0 16px; border-color: var(--red); color: var(--red);" title="Filtruj tabelę, pokazując tylko kandydatów do transferu">🗑️ Filtruj listę</button>
         </div>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
@@ -1164,6 +1169,7 @@ async function onUploadSuccess(stats, player, pvp_stats) {
   loadRaid();
   loadPvP("GL");
   loadDevelop();
+  updatePogoQuery();
 }
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
@@ -1195,7 +1201,33 @@ function filterPoke(p) {
     case "lucky":   return p.lucky;
     case "tier_s":  return p.best_tier === "S";
     case "tier_a":  return p.best_tier === "A";
-    case "trash":   return !p.shiny && !p.fav && !p.shadow && p.iv_pct < 82.2 && p.year > 2022;
+    case "trash": {
+      const cpMin = parseInt($("ropt-cp-min").value) || 1200;
+      const protectHundo = $("ropt-hundo").checked;
+      const protectNando = $("ropt-nando").checked;
+      const protectShiny = $("ropt-shiny").checked;
+      const protectShadow = $("ropt-shadow").checked;
+      const protectLucky = $("ropt-lucky").checked;
+      const protectFav = $("ropt-fav").checked;
+      const protectMeta = $("ropt-meta").checked;
+      const protectIv = $("ropt-iv").checked;
+      const protectPvp = $("ropt-pvp").checked;
+      const protectLvl = $("ropt-lvl").checked;
+
+      const isProtected = (protectHundo && (p.hundo || p.iv_pct === 100))
+        || (protectNando && p.iv_pct === 0)
+        || (protectShiny && p.shiny)
+        || (protectShadow && p.shadow)
+        || (protectLucky && p.lucky)
+        || (protectFav && p.fav)
+        || (protectMeta && (p.best_tier === "S" || p.best_tier === "A"))
+        || (protectIv && p.iv_pct >= 82.2)
+        || (p.cp >= cpMin)
+        || (protectPvp && p.gl_rank > 0 && p.gl_rank <= 500)
+        || (protectLvl && p.lvl >= 35);
+        
+      return !isProtected;
+    }
     case "y2016":   return p.year >= 2016 && p.year <= 2018;
     case "y2022":   return p.year >= 2019 && p.year <= 2022;
     case "pvp_gem": return p.gl_rank > 0 && p.gl_rank <= 250;
@@ -1393,6 +1425,26 @@ $("btn-copy-regex").addEventListener("click", () => {
     setTimeout(() => { btn.textContent = prev; btn.style.color = ""; btn.style.borderColor = ""; }, 3000);
   });
 });
+
+function updatePogoQuery() {
+  const result = buildPogoQuery();
+  const input = $("regex-query-input");
+  const hint = $("regex-hint");
+  if (!result || !result.chunks || result.chunks.length === 0) {
+    if (input) input.value = "";
+    if (hint) hint.textContent = _lang === "pl" ? "Wszystkie zachowane" : "All protected";
+    return;
+  }
+  const { chunks, skipped, total } = result;
+  if (input) {
+    input.value = chunks.join(" | ");
+  }
+  if (hint) {
+    hint.textContent = _lang === "pl"
+      ? `${chunks.length} paczek · ${total - skipped} gatunków`
+      : `${chunks.length} chunks · ${total - skipped} species`;
+  }
+}
 
 // ── Items ─────────────────────────────────────────────────────────────────────
 async function loadItems() {
@@ -2625,7 +2677,7 @@ function applyLanguage() {
 
   // Regex bar text localization
   const lblProtect = $("lbl-regex-protect");
-  if (lblProtect) lblProtect.textContent = _lang === "pl" ? "Chroń (nie dodawaj do transferu):" : "Protect (do not add to transfer):";
+  if (lblProtect) lblProtect.textContent = _lang === "pl" ? "Chroń:" : "Protect:";
 
   const lblExclude = $("lbl-regex-exclude");
   if (lblExclude) lblExclude.textContent = _lang === "pl" ? "Dodaj filtry wykluczające (&!):" : "Add negative filters (&!):";
@@ -2997,6 +3049,44 @@ async function recalcPowerup(select, idx) {
     container.innerHTML = `<span style="color:var(--red); font-size:10px;">Błąd</span>`;
   }
 }
+
+// Init event listeners for dynamic Regex PoGO and trash filtering
+(function initRegexBarEvents() {
+  // Bind listeners to all inputs inside regex-bar to dynamically update query and filter results if "trash" is active
+  document.addEventListener("input", (e) => {
+    if (e.target.closest(".regex-bar input")) {
+      updatePogoQuery();
+      if (S.filter === "trash") {
+        renderPokemons();
+      }
+    }
+  });
+  document.addEventListener("change", (e) => {
+    if (e.target.closest(".regex-bar input")) {
+      updatePogoQuery();
+      if (S.filter === "trash") {
+        renderPokemons();
+      }
+    }
+  });
+
+  // Trash filter button click listener
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest("#btn-filter-trash");
+    if (btn) {
+      $("poke-filter").value = "trash";
+      S.filter = "trash";
+      // Switch tab to "pokemons"
+      const tabBtn = document.querySelector('.tab[data-tab="pokemons"]');
+      if (tabBtn) {
+        tabBtn.click();
+      }
+      renderPokemons();
+      // Scroll to the main table toolbar so the user sees the list
+      $("poke-search").scrollIntoView({ behavior: "smooth" });
+    }
+  });
+})();
 </script>
 </body>
 </html>

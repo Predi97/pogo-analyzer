@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Interactive Column Sorting**: Implemented a generic client-side table sorting script for the Pokemony, Raidy, and PvP tables, allowing users to click table headers to sort rows ascending/descending by name, CP, level, IV percentage, and stats.
 - **Dynamic Pokémon Form Parsing**: Rewrote the parser's species naming module to dynamically detect and format all Pokémon forms (e.g., `Zacian (Crowned Sword)`, `Giratina (Origin)`, `Landorus (Therian)`) by handling CamelCase names and stripping redundant prefixes.
 - **Improved Events Dashboard**: Restructured the events card sorting to default-display active events first (ordered by ending soonest), followed by upcoming events (ordered by starting soonest), and ended events last. Fixed a localization bug where upcoming events without a day count showed as `Za undefinedd`.
+- **Dynamic Regex & Transfer Filtering**: Replaced the static transfer candidate rules with a fully dynamic filtering engine synced with the "Regex PoGO" control bar. Added a readonly text input showing the current regex query in real-time, shortened the "Protect" section title, and added a red `🗑️ Filtruj listę` button that instantly switches to the Pokémon tab and shows exactly the list of candidate species slated for transfer.
 
 
 

@@ -201,8 +201,8 @@ function filterPoke(p) {
     case "shiny":   return p.shiny;
     case "shadow":  return p.shadow;
     case "lucky":   return p.lucky;
-    case "tier_s":  return p.best_tier === "S";
-    case "tier_a":  return p.best_tier === "A";
+    case "tier_s":  return p.best_tier && p.best_tier.startsWith("S");
+    case "tier_a":  return p.best_tier && p.best_tier.startsWith("A");
     case "trash": {
       const cpMin = parseInt($("ropt-cp-min").value) || 1200;
       const protectHundo = $("ropt-hundo").checked;
@@ -222,7 +222,7 @@ function filterPoke(p) {
         || (protectShadow && p.shadow)
         || (protectLucky && p.lucky)
         || (protectFav && p.fav)
-        || (protectMeta && (p.best_tier === "S" || p.best_tier === "A"))
+        || (protectMeta && p.best_tier && (p.best_tier.startsWith("S") || p.best_tier.startsWith("A")))
         || (protectIv && p.iv_pct >= 82.2)
         || (p.cp >= cpMin)
         || (protectPvp && p.gl_rank > 0 && p.gl_rank <= 500)
@@ -253,7 +253,7 @@ function renderPokemons() {
   tbody.innerHTML = list.map(p => {
     const tiers = p.tiers || {};
     const tierBadges = Object.entries(tiers)
-      .map(([cat, t]) => `<span class="badge badge-${t.toLowerCase()}" data-tooltip="${cat}">${cat.split("_").pop().toUpperCase()} ${t}</span>`)
+      .map(([cat, t]) => `<span class="badge badge-${t.charAt(0).toLowerCase()}" data-tooltip="${cat}">${cat.split("_").pop().toUpperCase()} ${t}</span>`)
       .join("");
     const evTags = (p.event_tags || []).slice(0, 2)
       .map(ev => `<span class="badge badge-event" data-tooltip="${ev}">📅</span>`).join("");
@@ -313,7 +313,7 @@ function buildPogoQuery() {
         || (protectShadow && p.shadow)
         || (protectLucky && p.lucky)
         || (protectFav && p.fav)
-        || (protectMeta && (p.best_tier === "S" || p.best_tier === "A"))
+        || (protectMeta && p.best_tier && (p.best_tier.startsWith("S") || p.best_tier.startsWith("A")))
         || (protectIv && p.iv_pct >= 82.2)
         || (p.cp >= cpMin)
         || (protectPvp && p.gl_rank > 0 && p.gl_rank <= 500)
@@ -898,7 +898,7 @@ function renderRaid() {
   $("raid-tbody").innerHTML = _raidData.map((p, i) => {
     const tiers = p.tiers || {};
     const tb = Object.entries(tiers).map(([cat, t]) =>
-      `<span class="badge badge-${t.toLowerCase()}">${cat.split("_").pop().toUpperCase()} ${t}</span>`).join("");
+      `<span class="badge badge-${t.charAt(0).toLowerCase()}">${cat.split("_").pop().toUpperCase()} ${t}</span>`).join("");
     const tags = [
       p.shiny  ? `<span class="badge badge-shiny">✨</span>` : "",
       p.shadow ? `<span class="badge badge-shadow">Shadow</span>` : "",
@@ -1136,7 +1136,7 @@ function renderPvP() {
     const keyMap = { GL: "pvp_great", UL: "pvp_ultra", ML: "pvp_master" };
     const t = tiers[keyMap[_pvpLeague]];
     if (t) {
-      tb = `<span class="badge badge-${t.toLowerCase()}">${_pvpLeague} ${t}</span>`;
+      tb = `<span class="badge badge-${t.charAt(0).toLowerCase()}">${_pvpLeague} ${t}</span>`;
     }
     const tags = [
       p.shiny  ? `<span class="badge badge-shiny">✨</span>` : "",
@@ -1208,7 +1208,7 @@ function renderDevelop() {
   $("dev-evolve-tbody").innerHTML = d.evolve.map(p => {
     const tags = [p.shiny ? `<span class="badge badge-shiny">✨</span>` : "",
                   p.lucky ? `<span class="badge badge-lucky">🍀</span>` : ""].join("");
-    const tc = p.final_tier === "S" ? "badge-s" : "badge-a";
+    const tc = (p.final_tier && p.final_tier.startsWith("S")) ? "badge-s" : "badge-a";
     
     let limitBadge = "";
     if (p.final_cp > 2500) {
@@ -1256,7 +1256,7 @@ function renderDevelop() {
 
   $("dev-purify-tbody").innerHTML = d.purify.map(p => {
     const pA = Math.min(15, p.iv_a+2), pD = Math.min(15, p.iv_d+2), pS = Math.min(15, p.iv_s+2);
-    const tc = p.best_tier === "S" ? "badge-s" : p.best_tier === "A" ? "badge-a" : "";
+    const tc = (p.best_tier && p.best_tier.startsWith("S")) ? "badge-s" : (p.best_tier && p.best_tier.startsWith("A")) ? "badge-a" : "";
     return `<tr>
       <td class="name-cell">${p.name}</td>
       <td class="cp-cell">${p.cp}</td>

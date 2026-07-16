@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Refactored
 - **Modularized Frontend Templates**: Refactored the massive 153 KB `index.html` file into lightweight, decoupled partial components (sidebar, regex bar, tabs) under `templates/partials/` and externalized all styling to `static/css/app.css` and application script logic to `static/js/app.js`. This aligns the frontend architecture with Flask/Jinja2 template inheritance best practices and enables browser caching of assets.
 
+### Fixed
+- **Sub-tier Badge Styling and Filters**: Fixed sub-tier badges (e.g. S+, A+, B+) failing to render background styling by extracting the base tier level character for CSS class bindings. Corrected meta filter matches so that sub-tier rankings are properly protected and selectable in S/A filters.
+
 ## [1.2.0] - 2026-07-15
 
 ### Added

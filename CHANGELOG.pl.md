@@ -10,6 +10,9 @@ a projekt stosuje się do [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 ### Zrefaktoryzowano
 - **Modularyzacja szablonów frontendowych**: Rozbito olbrzymi plik `index.html` (153 KB) na lekkie, niezależne komponenty pomocnicze (panel boczny, pasek regex, poszczególne panele zakładek) w katalogu `templates/partials/` oraz przeniesiono wszystkie reguły stylów do `static/css/app.css` i skryptów aplikacji do `static/js/app.js`. Zmiana ta porządkuje strukturę frontendu według dobrych praktyk Jinja2 we Flasku i umożliwia cache'owanie zasobów przez przeglądarkę.
 
+### Naprawiono
+- **Wizualizacja i filtry pod-tierów (S+, A+, B+)**: Naprawiono błąd braku tła graficznego (badge) dla pod-tierów (np. S+, B+), wyodrębniając pierwszy znak poziomu dla klas stylów CSS. Skorygowano także dopasowania filtrów meta, dzięki czemu Pokémony z pod-tierami są poprawnie chronione i widoczne przy filtrowaniu S/A.
+
 ## [1.2.0] - 2026-07-15
 
 ### Dodano
